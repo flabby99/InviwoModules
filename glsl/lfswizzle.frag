@@ -20,10 +20,13 @@ void main()
     float pitch = 47.578365325927737 * screenInches;
     pitch *= cos(tan(1.0 / -5.444456577301025)); 
     float center = 0.4418478012084961;
+    float invView = 1.0;
+    float flipX = 0.0;
+    float flipY = 0.0;
 
     vec4 aspect;
     aspect.x = 2560.0 / 1600.0;
-    aspect.y = -1.0;
+    aspect.y = 2560.0 / 1600.0;
     aspect.z = 0.0;
     aspect.w = 0.0;
 
@@ -34,24 +37,36 @@ void main()
     ){
         nuv.x *= aspect.x / aspect.y;
     } else {
-        nuv.y *= aspect.y / aspect.x;
+        //nuv.y *= aspect.y / aspect.x;
     }
-    
+
     nuv += 0.5;
     if(nuv.x < 0.0 || nuv.x > 1.0 || nuv.y < 0.0 || nuv.y > 1.0)
+    {
+        //FragData0 = vec4(nuv.x, nuv.y, 0, 1);
+        //FragData0 = vec4(1, 0, 0, 1);
         discard;
-
-
-    vec4 rgb[3];
-    for (int i; i < 3; i++) {
-        nuv.z = (nuv.x + float(i) * subp + nuv.y * tilt) * pitch - center;
-        nuv.z = mod(nuv.z + ceil(abs(nuv.z)), 1.0);
-        //nuv.z = (1.0 - invView) * nuv.z + invView * (1.0 - nuv.z);
-        rgb[i] = texture(tileTexture, texArr(nuv));
     }
+    else
+    {
 
-    //vec4 c = texture(tileTexture, gl_FragCoord.xy / vec2(2560, 1600));
-    //FragData0 = vec4(c);
+        nuv.x = (1.0 - flipX) * nuv.x + flipX * (1.0 - nuv.x);
+        nuv.y = (1.0 - flipY) * nuv.y + flipY * (1.0 - nuv.y);
 
-    FragData0 = vec4(rgb[0].r, rgb[1].g, rgb[2].b, 1);
+
+
+        vec4 rgb[3];
+        for (int i; i < 3; i++) {
+            nuv.z = (nuv.x + float(i) * subp + nuv.y * tilt) * pitch - center;
+            nuv.z = mod(nuv.z + ceil(abs(nuv.z)), 1.0);
+            nuv.z = (1.0 - invView) * nuv.z + invView * (1.0 - nuv.z);
+            rgb[i] = texture(tileTexture, texArr(nuv)); 
+        }
+
+        //vec4 c = texture(tileTexture, gl_FragCoord.xy / vec2(2560, 1600));
+        //FragData0 = vec4(c);
+
+        FragData0 = vec4(rgb[0].r, rgb[1].g, rgb[2].b, 1);
+    }
+    //FragData0 = vec4(clamp(nuv.x, 0, 1), clamp(nuv.y, 0, 1), 0, 1);
 }

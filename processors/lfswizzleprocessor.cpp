@@ -33,6 +33,7 @@ lfswizzleprocessor::lfswizzleprocessor()
 
 void lfswizzleprocessor::process() {
     // outport_.setData(myImage);
+    //tileImagePort_.getEditableData().get()->setDimensions(size2_t(4096, 4096));
     outputPort_.getEditableData().get()->setDimensions(size2_t(2560, 1600));
 
     utilgl::DepthFuncState depthfunc(GL_ALWAYS);
