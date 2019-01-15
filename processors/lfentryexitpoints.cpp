@@ -29,12 +29,16 @@ lfentryexitpoints::lfentryexitpoints()
     , capNearClipping_("capNearClipping", "Cap near plane clipping", true)
     , trackball_(&camera_)
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
+    , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
+    , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
     , entryExitShader_("lfentryexitpoints.vert", "lfentryexitpoints.frag") {
 
     addPort(inport_);
     addPort(entryPort_, "ImagePortGroup1");
     addPort(exitPort_, "ImagePortGroup1");
     addProperty(regionSizeProperty_);
+    addProperty(viewConeProperty_);
+    addProperty(verticalAngleProperty_);
     addProperty(capNearClipping_);
     addProperty(camera_);
     addProperty(trackball_);
@@ -91,25 +95,32 @@ void lfentryexitpoints::drawViews()
     int view = 0;
     size2_t tileSize(819, 455);
     float spacing = 0.1f;
+    //45 is the number of views
     float width = spacing * 45.0f;
-    float offset = (width * 0.5f);
-    float viewCone = 40.0f;
+    float viewCone = viewConeProperty_.get();
     PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
     float size = regionSizeProperty_.get();
+    float verticalAngle = verticalAngleProperty_.get();
     float adjustedSize = size / tanf(glm::radians(cam->getFovy() * 0.5f));
+    float offsetX = 0;
+    float offsetY = 0;
     
     for(int y = 0; y < 9; ++y)
     {
         for(int x = 0; x < 5; ++x)
         {
             float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
-            offset = adjustedSize * tanf(glm::radians(angleAtView));
+            offsetX = adjustedSize * tanf(glm::radians(angleAtView));
+            offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
             mat4 currentViewMatrix = viewMatrix;
-            currentViewMatrix[3][0] -= offset;
+            currentViewMatrix[3][0] -= offsetX;
+            currentViewMatrix[3][1] -= offsetY;
+            
 
             mat4 currentProjectionMatrix = projectionMatrix;
-            currentProjectionMatrix[2][0] -= offset / (size * cam->getAspectRatio());
+            currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+            currentProjectionMatrix[2][1] -= offsetY / size;
             
             mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
             entryExitShader_.setUniform("dataToClip", mvpMatrix);
