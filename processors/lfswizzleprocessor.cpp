@@ -5,7 +5,6 @@
 #include <inviwo/core/datastructures/image/image.h>
 #include <modules/opengl/texture/textureutils.h>
 #include <modules/opengl/shader/shaderutils.h>
-#include <modules/opengl/shader/standardshaders.h>
 #include <modules/opengl/openglutils.h>
 #include <modules/opengl/rendering/meshdrawergl.h>
 
@@ -25,7 +24,7 @@ lfswizzleprocessor::lfswizzleprocessor()
     : Processor()
     , tileImagePort_("tiledata", DataVec4UInt16::get())
     , outputPort_("output", DataVec4UInt16::get())
-    , swizzleShader_({utilgl::imgQuadVert(), {ShaderType::Fragment, utilgl::findShaderResource("lfswizzle.frag")}}) 
+    , swizzleShader_("lfswizzle.vert", "lfswizzle.frag") 
 {
     addPort(tileImagePort_);
     addPort(outputPort_);
