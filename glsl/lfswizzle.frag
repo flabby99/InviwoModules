@@ -37,7 +37,7 @@ void main()
     ){
         nuv.x *= aspect.x / aspect.y;
     } else {
-        //nuv.y *= aspect.y / aspect.x;
+        nuv.y *= aspect.y / aspect.x;
     }
 
     nuv += 0.5;
