@@ -84,6 +84,8 @@ private:
     BoolProperty capNearClipping_;
     CameraTrackball trackball_;
     FloatProperty regionSizeProperty_;
+    FloatProperty verticalAngleProperty_;
+    FloatProperty viewConeProperty_;
 
     Shader entryExitShader_;
 };
