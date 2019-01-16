@@ -83,7 +83,10 @@ public:
     virtual const ProcessorInfo getProcessorInfo() const override;
     static const ProcessorInfo processorInfo_;
 
-    float getSensorSize();
+    float getSensorSizeX();
+    float getSensorSizeY();
+
+    void drawLGViews();
 
 protected:
     virtual void process() override;
@@ -96,6 +99,9 @@ protected:
     FloatProperty cameraBaseline_;
     FloatProperty disparityScale_x_;        
     FloatProperty disparityScale_y_;
+    FloatProperty regionSizeProperty_;
+    FloatProperty verticalAngleProperty_;
+    FloatProperty viewConeProperty_;
 
     CameraProperty camera_;
 

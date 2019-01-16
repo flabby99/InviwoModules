@@ -11,8 +11,10 @@ uniform ImageParameters outportParameters;
 uniform float disparityScale_x;
 uniform float disparityScale_y;
 
+uniform vec4 viewport;
+
 void main() {
-    vec2 texCoords = gl_FragCoord.xy * disparityParameters.reciprocalDimensions;
+    vec2 texCoords = (gl_FragCoord.xy - viewport.xy) / (viewport.zw);
     float disparity = texture(disparityDepth, texCoords).x;
     float disparity_x = disparity * disparityScale_x;
     float disparity_y = disparity * disparityScale_y;
@@ -22,6 +24,7 @@ void main() {
     float coord_y = clamp(texCoords.y - disparity_y, 0, 1);
 
     FragData0 = texture(disparityColor, vec2(coord_x, coord_y));
-    //FragData0 = vec4(abs(disparity_x), abs(disparity_y), 0, 1);
+    //FragData0 = vec4(abs(disparity_x), 0, 0, 1);
+    //FragData0 = vec4(texCoords, 0, 1);
     gl_FragDepth = disparity;
 }
