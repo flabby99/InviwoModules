@@ -27,6 +27,7 @@ lfentryexitpoints::lfentryexitpoints()
     , exitPort_("exit", DataVec4UInt16::get())
     , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), &inport_)
     , capNearClipping_("capNearClipping", "Cap near plane clipping", true)
+    , shouldShear_("shouldShear", "Should Use Shear Projection", true)
     , trackball_(&camera_)
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
     , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
@@ -40,6 +41,7 @@ lfentryexitpoints::lfentryexitpoints()
     addProperty(viewConeProperty_);
     addProperty(verticalAngleProperty_);
     addProperty(capNearClipping_);
+    addProperty(shouldShear_);
     addProperty(camera_);
     addProperty(trackball_);
     entryPort_.addResizeEventListener(&camera_);
@@ -116,9 +118,10 @@ void lfentryexitpoints::drawViews()
             
 
             mat4 currentProjectionMatrix = projectionMatrix;
-            currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
-            currentProjectionMatrix[2][1] -= offsetY / size;
-            
+            if (shouldShear_.get()) {
+                currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+                currentProjectionMatrix[2][1] -= offsetY / size;
+            }            
             mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
             entryExitShader_.setUniform("dataToClip", mvpMatrix);
             size2_t start(x * tileSize.x, y * tileSize.y);
