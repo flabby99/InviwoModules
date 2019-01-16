@@ -82,6 +82,7 @@ private:
 
     CameraProperty camera_;
     BoolProperty capNearClipping_;
+    BoolProperty shouldShear_;
     CameraTrackball trackball_;
     FloatProperty regionSizeProperty_;
     FloatProperty verticalAngleProperty_;
