@@ -39,8 +39,6 @@
 #include "utils/shading.glsl"
 #include "utils/raycastgeometry.glsl"
 
-#include "utils/isosurface.glsl"
-
 uniform VolumeParameters volumeParameters;
 uniform sampler3D volume;
 
@@ -66,7 +64,6 @@ uniform LightParameters lighting;
 uniform CameraParameters camera;
 uniform VolumeIndicatorParameters positionindicator;
 uniform RaycastingParameters raycaster;
-uniform IsovalueParameters isovalues;
 
 uniform int channel;
 uniform bool useTwoDepths;
@@ -130,9 +127,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 #if defined(ISOSURFACE_ENABLED) && defined(INCLUDE_ISOSURFACES)
         // make sure that tIncr has the correct length since drawIsoSurface will modify it
         tIncr = tEnd / samples;
-        result = drawIsosurfaces(result, isovalues, voxel, previousVoxel, 
-                                 volume, volumeParameters, channel, transferFunction, camera, lighting, 
-                                 samplePos, rayDirection, toCameraDir, t, tIncr, fDepth);
+        
 #endif // ISOSURFACE_ENABLED
 
 #if defined(BACKGROUND_AVAILABLE)

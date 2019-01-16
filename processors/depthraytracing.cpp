@@ -64,8 +64,7 @@ DepthRayTracing::DepthRayTracing()
     , secondDepthThreshold_("secondDepthThreshold", "Second Depth Threshold", 0.35)
     , channel_("channel", "Render Channel")
     , raycasting_("raycaster", "Raycasting")
-    , isotfComposite_("isotfComposite", "TF & Isovalues", &volumePort_,
-                      InvalidationLevel::InvalidResources)
+    , transferFunction_("transferFunction", "Transfer function", &volumePort_)
     , camera_("camera", "Camera")
     , lighting_("lighting", "Lighting", &camera_)
     , positionIndicator_("positionindicator", "Position Indicator")
@@ -105,13 +104,12 @@ DepthRayTracing::DepthRayTracing()
     backgroundPort_.onDisconnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
 
     // change the currently selected channel when a pre-computed gradient is selected
-    raycasting_.gradientComputation_.onChange([this]() {
+    raycasting_.gradientComputationMode_.onChange([this]() {
         if (channel_.size() == 4) {
-            if (raycasting_.gradientComputation_.get() ==
-                RaycastingProperty::GradientComputation::PrecomputedXYZ) {
+            if (raycasting_.gradientComputationMode_.isSelectedIdentifier("precomputedXYZ")) {
                 channel_.set(3);
-            } else if (raycasting_.gradientComputation_.get() ==
-                       RaycastingProperty::GradientComputation::PrecomputedYZW) {
+            } else if (raycasting_.gradientComputationMode_.isSelectedIdentifier(
+                           "precomputedYZW")) {
                 channel_.set(0);
             }
         }
@@ -122,7 +120,7 @@ DepthRayTracing::DepthRayTracing()
     addProperty(secondDepthThreshold_);
     addProperty(channel_);
     addProperty(raycasting_);
-    addProperty(isotfComposite_);
+    addProperty(transferFunction_);
 
     addProperty(camera_);
     addProperty(lighting_);
@@ -133,8 +131,10 @@ DepthRayTracing::DepthRayTracing()
 const ProcessorInfo DepthRayTracing::getProcessorInfo() const { return processorInfo_; }
 
 void DepthRayTracing::initializeResources() {
-    utilgl::addDefines(shader_, raycasting_, isotfComposite_, camera_, lighting_,
-                       positionIndicator_);
+    utilgl::addShaderDefines(shader_, raycasting_);
+    utilgl::addShaderDefines(shader_, camera_);
+    utilgl::addShaderDefines(shader_, lighting_);
+    utilgl::addShaderDefines(shader_, positionIndicator_);
     utilgl::addShaderDefinesBGPort(shader_, backgroundPort_);
     shader_.build();
 }
@@ -169,7 +169,7 @@ void DepthRayTracing::process() {
 
     TextureUnitContainer units;
     utilgl::bindAndSetUniforms(shader_, units, *loadedVolume_, "volume");
-    utilgl::bindAndSetUniforms(shader_, units, isotfComposite_);
+    utilgl::bindAndSetUniforms(shader_, units, transferFunction_);
     utilgl::bindAndSetUniforms(shader_, units, entryPort_, ImageType::ColorDepthPicking);
     utilgl::bindAndSetUniforms(shader_, units, exitPort_, ImageType::ColorDepth);
     if (backgroundPort_.hasData()) {
@@ -177,7 +177,7 @@ void DepthRayTracing::process() {
     }
     utilgl::setUniforms(shader_, outport_, camera_, lighting_, raycasting_, positionIndicator_,
                         channel_, useTwoDepths_, firstDepthThreshold_,
-                        secondDepthThreshold_, isotfComposite_);
+                        secondDepthThreshold_);
 
     utilgl::singleDrawImagePlaneRect();
 
