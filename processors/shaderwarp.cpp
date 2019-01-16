@@ -44,7 +44,7 @@ const ProcessorInfo ShaderWarp::processorInfo_{
     "Shader Based Backward Warp",            // Display name
     "Image Processing",            // Category
     CodeState::Experimental,       // Code state
-    "Warp", "Image"          // Tags
+    Tags::GL          // Tags
 };
 
 const ProcessorInfo ShaderWarp::getProcessorInfo() const { return processorInfo_; }
