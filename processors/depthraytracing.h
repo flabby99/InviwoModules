@@ -36,8 +36,8 @@
 #include <inviwo/core/io/serialization/versionconverter.h>
 #include <inviwo/core/processors/processor.h>
 #include <inviwo/core/properties/optionproperty.h>
-#include <inviwo/core/properties/transferfunctionproperty.h>
-#include <inviwo/core/properties/simpleraycastingproperty.h>
+#include <inviwo/core/properties/isotfproperty.h>
+#include <inviwo/core/properties/raycastingproperty.h>
 #include <inviwo/core/properties/simplelightingproperty.h>
 #include <inviwo/core/properties/cameraproperty.h>
 #include <inviwo/core/properties/compositeproperty.h>
@@ -108,8 +108,8 @@ protected:
     FloatProperty firstDepthThreshold_;
     FloatProperty secondDepthThreshold_;
     OptionPropertyInt channel_;
-    SimpleRaycastingProperty raycasting_;
-    TransferFunctionProperty transferFunction_;
+    RaycastingProperty raycasting_;
+    IsoTFProperty isotfComposite_;
 
     CameraProperty camera_;
     SimpleLightingProperty lighting_;

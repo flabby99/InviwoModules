@@ -64,7 +64,8 @@ DepthRayTracing::DepthRayTracing()
     , secondDepthThreshold_("secondDepthThreshold", "Second Depth Threshold", 0.35)
     , channel_("channel", "Render Channel")
     , raycasting_("raycaster", "Raycasting")
-    , transferFunction_("transferFunction", "Transfer function", &volumePort_)
+    , isotfComposite_("isotfComposite", "TF & Isovalues", &volumePort_,
+                      InvalidationLevel::InvalidResources)
     , camera_("camera", "Camera")
     , lighting_("lighting", "Lighting", &camera_)
     , positionIndicator_("positionindicator", "Position Indicator")
@@ -104,12 +105,13 @@ DepthRayTracing::DepthRayTracing()
     backgroundPort_.onDisconnect([&]() { this->invalidate(InvalidationLevel::InvalidResources); });
 
     // change the currently selected channel when a pre-computed gradient is selected
-    raycasting_.gradientComputationMode_.onChange([this]() {
+    raycasting_.gradientComputation_.onChange([this]() {
         if (channel_.size() == 4) {
-            if (raycasting_.gradientComputationMode_.isSelectedIdentifier("precomputedXYZ")) {
+            if (raycasting_.gradientComputation_.get() ==
+                RaycastingProperty::GradientComputation::PrecomputedXYZ) {
                 channel_.set(3);
-            } else if (raycasting_.gradientComputationMode_.isSelectedIdentifier(
-                           "precomputedYZW")) {
+            } else if (raycasting_.gradientComputation_.get() ==
+                       RaycastingProperty::GradientComputation::PrecomputedYZW) {
                 channel_.set(0);
             }
         }
@@ -120,7 +122,7 @@ DepthRayTracing::DepthRayTracing()
     addProperty(secondDepthThreshold_);
     addProperty(channel_);
     addProperty(raycasting_);
-    addProperty(transferFunction_);
+    addProperty(isotfComposite_);
 
     addProperty(camera_);
     addProperty(lighting_);
@@ -169,7 +171,7 @@ void DepthRayTracing::process() {
 
     TextureUnitContainer units;
     utilgl::bindAndSetUniforms(shader_, units, *loadedVolume_, "volume");
-    utilgl::bindAndSetUniforms(shader_, units, transferFunction_);
+    utilgl::bindAndSetUniforms(shader_, units, isotfComposite_);
     utilgl::bindAndSetUniforms(shader_, units, entryPort_, ImageType::ColorDepthPicking);
     utilgl::bindAndSetUniforms(shader_, units, exitPort_, ImageType::ColorDepth);
     if (backgroundPort_.hasData()) {
