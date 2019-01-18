@@ -68,6 +68,8 @@ DepthToDisparity::DepthToDisparity()
     disparity_size_ = size2_t(819, 455);
 
     disparity_.setDimensions(disparity_size_);
+    disparity_.setHandleResizeEvents(false);
+    (&entryPort_)->setOutportDeterminesSize(true);
 }
 
 void DepthToDisparity::initializeResources() {
@@ -77,7 +79,8 @@ void DepthToDisparity::initializeResources() {
 }
 
 void DepthToDisparity::process() {
-    if (entryPort_.isReady()){    
+    if (entryPort_.isReady()){
+        auto start = std::chrono::system_clock::now();    
         // Use shader to convert depth to disparity
         utilgl::activateAndClearTarget(disparity_);
         depthShader_.activate();
@@ -89,7 +92,9 @@ void DepthToDisparity::process() {
         utilgl::setShaderUniforms(depthShader_, disparity_);
         
         utilgl::singleDrawImagePlaneRect();
-    
+
+        std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
+        LogInfo("Disparity conversion took " << diff.count() << "s");
         depthShader_.deactivate();
         utilgl::deactivateCurrentTarget();
     }

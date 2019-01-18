@@ -80,6 +80,8 @@ ShaderWarp::ShaderWarp()
     disparity_size_ = size2_t(819, 455);
 
     outport_.setDimensions(size2_t(4096, 4096));
+    outport_.setHandleResizeEvents(false);
+    (&entryPort_)->setOutportDeterminesSize(true);
 }
 
 void ShaderWarp::initializeResources() {
@@ -109,6 +111,7 @@ float ShaderWarp::getSensorSizeX() {
 void ShaderWarp::process() {
     if (entryPort_.isReady()){    
         // Do the backward warping
+        auto start = std::chrono::system_clock::now(); 
         TextureUnitContainer units;
         utilgl::activateAndClearTarget(outport_);
         shader_.activate();
@@ -119,6 +122,8 @@ void ShaderWarp::process() {
 
         drawLGViews();
 
+        std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
+        LogInfo("Warping took " << diff.count() << "s");
         shader_.deactivate();
         utilgl::deactivateCurrentTarget();
     }
@@ -169,6 +174,15 @@ void ShaderWarp::drawLGViews() {
 void ShaderWarp::deserialize(Deserializer& d) {
     util::renamePort(d, {{&entryPort_, "entry-points"}, });
     Processor::deserialize(d);
+}
+
+void ShaderWarp::propagateEvent(Event* event, Outport* target) {
+    if (event->hash() == ResizeEvent::chash()) {
+        event->markAsUsed();
+    }
+    else { 
+        Processor::propagateEvent(event, target);
+    }
 }
 
 }
