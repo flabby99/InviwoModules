@@ -28,8 +28,8 @@
  *********************************************************************************/
 // Based on inviwo\modules\basegl\processors\volumeraycaster.h
 
-#ifndef IVW_SHADER_WARP_H
-#define IVW_SHADER_WARP_H
+#ifndef IVW_DEPTH_TO_DISP_H
+#define IVW_DEPTH_TO_DISP_H
 
 #include <modules/image_warping/image_warpingmoduledefine.h>
 #include <inviwo/core/common/inviwo.h>
@@ -41,7 +41,7 @@
 
 namespace inviwo {
 //TODO fix docs if care
-/** \docpage{org.inviwo.ShaderWarp, Volume Raycaster}
+/** \docpage{org.inviwo.DepthToDisparity, Volume Raycaster}
  * ![](org.inviwo.MpiRayTracing.png?classIdentifier=org.inviwo.MpiRayTracing)
  * Processor for visualizing volumetric data by means of volume raycasting. Besides the
  * volume data, entry and exit point locations of the bounding box are required. These
@@ -59,7 +59,7 @@ namespace inviwo {
  * ### Outports
  *   * __outport__ output image containing volume rendering of the input
  *
- * ### Properties (from ShaderWarp)
+ * ### Properties (from DepthToDisparity)
  *   * __Render Channel__    selects which channel of the input volume is rendered
  *   * __Raycasting__        raycasting parameters including rendering type (DVR / isosurfaces),
  *                           compositing, sampling rate, etc.
@@ -70,10 +70,10 @@ namespace inviwo {
  *   * __Toggle Shading__    boolean flag for enabling/disabling shading
  *
  */
-class IVW_MODULE_IMAGE_WARPING_API ShaderWarp : public Processor {
+class IVW_MODULE_IMAGE_WARPING_API DepthToDisparity : public Processor {
 public:
-    ShaderWarp();
-    virtual ~ShaderWarp() = default;
+    DepthToDisparity();
+    virtual ~DepthToDisparity() = default;
 
     virtual void initializeResources() override;
 
@@ -91,24 +91,17 @@ protected:
     virtual void process() override;
 
     ImageInport entryPort_;
-    ImageOutport outport_;
+    ImageOutport disparity_;
 
-    Image disparity_;
-
-    FloatProperty disparityScale_x_;        
-    FloatProperty disparityScale_y_;
-    FloatProperty regionSizeProperty_;
-    FloatProperty verticalAngleProperty_;
-    FloatProperty viewConeProperty_;
-    FloatProperty shift_;
-
+    FloatProperty cameraBaseline_;
     CameraProperty camera_;
 
-    Shader shader_;
+    Shader depthShader_;
+
 private:
     size2_t disparity_size_;
 };
 
 }  // namespace inviwo
 
-#endif  // IVW_SHADER_WARP_H
+#endif  //IVW_DEPTH_TO_DISP_H

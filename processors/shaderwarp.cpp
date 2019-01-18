@@ -51,41 +51,39 @@ const ProcessorInfo ShaderWarp::getProcessorInfo() const { return processorInfo_
 
 ShaderWarp::ShaderWarp()
     : Processor()
-    , entryPort_("entry")
+    , entryPort_("disparity")
     , outport_("outport")
-    , disparity_()
-    , cameraBaseline_("cameraBaseline", "Camera Baseline", 0.05, 0, 1, 0.001)
     , disparityScale_x_("disparityScale_x", "Disparity Scale x", 0.0, -10, 10, 0.01)
     , disparityScale_y_("disparityScale_y", "Disparity Scale y", 0.0, -10, 10, 0.01)
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
     , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
+    , shift_("shift", "Shift between cameras", 0.0f, -100.0f, 100.0f, 0.01f)
     , camera_("camera", "Camera")
-    , shader_("backwardwarping.frag")
-    , depthShader_("depth_to_disparity.frag") {
-
+    , shader_("backwardwarping.frag") {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
     addPort(entryPort_, "ImagePortGroup1");
     addPort(outport_, "ImagePortGroup1");
 
-    addProperty(cameraBaseline_);
     addProperty(camera_);
     addProperty(disparityScale_x_);
     addProperty(disparityScale_y_);
     addProperty(regionSizeProperty_);
     addProperty(viewConeProperty_);
     addProperty(verticalAngleProperty_);
+    addProperty(shift_);
     disparityScale_x_.setReadOnly(true);
     disparityScale_y_.setReadOnly(true);
+    shift_.setReadOnly(true);
 
-    disparity_ = Image(outport_.getDimensions(), outport_.getDataFormat());
+    disparity_size_ = size2_t(819, 455);
+
+    outport_.setDimensions(size2_t(4096, 4096));
 }
 
 void ShaderWarp::initializeResources() {
     // Add any defines here.
-
-    depthShader_.build();
 
     shader_.build();
 }
@@ -110,31 +108,13 @@ float ShaderWarp::getSensorSizeX() {
 
 void ShaderWarp::process() {
     if (entryPort_.isReady()){    
-        //TODO only do this if the dimensions have changed
-        outport_.setDimensions(size2_t(4096, 4096));
-        disparity_ = Image(entryPort_.getData()->getDimensions(), entryPort_.getData()->getDataFormat());
-
-        // Use shader to convert depth to disparity
-        utilgl::activateAndClearTarget(disparity_);
-        depthShader_.activate();
-        
-        TextureUnitContainer units;   
-        utilgl::bindAndSetUniforms(
-            depthShader_, units, entryPort_, ImageType::ColorDepth);
-        utilgl::setUniforms(depthShader_, camera_, cameraBaseline_);
-        utilgl::setShaderUniforms(depthShader_, disparity_, "disparityParameters");
-        
-        utilgl::singleDrawImagePlaneRect();
-    
-        depthShader_.deactivate();
-        utilgl::deactivateCurrentTarget();
-
         // Do the backward warping
+        TextureUnitContainer units;
         utilgl::activateAndClearTarget(outport_);
         shader_.activate();
 
         utilgl::bindAndSetUniforms(
-                shader_, units, disparity_, "disparity", ImageType::ColorDepth);
+                shader_, units, entryPort_, ImageType::ColorDepth);
         utilgl::setUniforms(shader_, outport_);
 
         drawLGViews();
@@ -150,7 +130,7 @@ void ShaderWarp::drawLGViews() {
 
     // Draw the views
     int view = 0;
-    size2_t tileSize(819, 455);
+    size2_t tileSize = disparity_size_;
     float viewCone = viewConeProperty_.get();
     PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
     float size = regionSizeProperty_.get();
@@ -167,10 +147,11 @@ void ShaderWarp::drawLGViews() {
         offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
         // TODO this may not be needed (the division)
-        disparityScale_x_ = (offsetX / sensor_size_x);
-        disparityScale_y_ = (offsetY / sensor_size_y);
+        disparityScale_x_ = (offsetX / size * cam->getAspectRatio());
+        disparityScale_y_ = (offsetY / size);
+        shift_ = offsetX / (size * cam->getAspectRatio());
         
-        utilgl::setUniforms(shader_, disparityScale_x_, disparityScale_y_);
+        utilgl::setUniforms(shader_, disparityScale_x_, disparityScale_y_, shift_);
 
         size2_t start(x * tileSize.x, y * tileSize.y);
         glViewport(start.x, start.y, tileSize.x, tileSize.y);

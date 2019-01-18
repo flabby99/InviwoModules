@@ -30,6 +30,7 @@
 #include <modules/image_warping/image_warpingmodule.h>
 #include <modules/opengl/shader/shadermanager.h>
 #include <modules/image_warping/processors/shaderwarp.h>
+#include <modules/image_warping/processors/depth_to_disparity.h>
 
 namespace inviwo {
 
@@ -41,6 +42,7 @@ image_warpingModule::image_warpingModule(InviwoApplication* app) : InviwoModule(
 
     // Processors
     registerProcessor<ShaderWarp>();
+    registerProcessor<DepthToDisparity>();
 
     // Properties
     // registerProperty<image_warpingProperty>();

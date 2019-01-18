@@ -24,10 +24,11 @@ float depth_to_disparity(float depth, CameraParameters camera, float baseline) {
 }
 
 void main() {
-    vec2 texCoords = gl_FragCoord.xy * disparityParameters.reciprocalDimensions;
+    vec2 texCoords = gl_FragCoord.xy * entryParameters.reciprocalDimensions;
     float depth = texture(entryDepth, texCoords).x;
 
     //gl_FragDepth = depth;
+    //gl_FragDepth = 1;
     gl_FragDepth = depth_to_disparity(depth, camera, cameraBaseline);
     FragData0 = texture(entryColor, texCoords);
 }
