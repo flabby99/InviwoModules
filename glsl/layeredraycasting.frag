@@ -69,6 +69,7 @@ uniform IsovalueParameters isovalues;
 
 uniform int channel;
 
+#define PRECISION 0.0001
 #define ERT_THRESHOLD 0.99  // threshold for early ray termination
 
 #if (!defined(INCLUDE_DVR) && !defined(INCLUDE_ISOSURFACES))
@@ -76,7 +77,7 @@ uniform int channel;
 #endif
 
 
-vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth) {
+vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth, out vec4 pos) {
     vec4 result = vec4(0.0);
     vec3 rayDirection = exitPoint - entryPoint;
     float tEnd = length(rayDirection);
@@ -153,7 +154,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 #endif // INCLUDE_DVR
 
         // early ray termination
-        if (result.a > ERT_THRESHOLD) {
+        if (result.a > ERT_THRESHOLD + 1) {
             t = tEnd;
         } else {
 #if defined(ISOSURFACE_ENABLED) && defined(INCLUDE_ISOSURFACES)
@@ -180,14 +181,17 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
     gl_FragDepth = min(backgroundDepth, tDepth);
 
+    pos = vec4(samplePos, 1.0);
     return result;
-    //return vec4(samplePos, 1.0);
 }
 
 void main() {
+    // TODO will be faster if I explicity remove this tex sample for later iters
     vec2 texCoords = gl_FragCoord.xy * outportParameters.reciprocalDimensions;
     vec3 entryPoint = texture(entryColor, texCoords).rgb;
     vec3 exitPoint = texture(exitColor, texCoords).rgb;
+    vec3 position = texture(entryPicking, texCoords).rgb;
+    vec4 pos;
 
     vec4 color = vec4(0);
 
@@ -202,8 +206,14 @@ void main() {
         discard;
     }
 #endif // BACKGROUND_AVAILABLE
-    if (entryPoint != exitPoint) {
-        color = rayTraversal(entryPoint, exitPoint, texCoords, backgroundDepth);
+    bool not_zero = dot(position, position) != 0;
+    //float is_not_too_close_to_zero = step(-PRECISION, val) * (1.0 - step(PRECISION, val));
+    if (not_zero) {
+        entryPoint = position;
+    }
+    if (length(entryPoint - exitPoint) > PRECISION) {
+        color = rayTraversal(entryPoint, exitPoint, texCoords, backgroundDepth, pos);
+        PickingData = pos;
     }
     FragData0 = color;
 }
