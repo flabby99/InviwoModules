@@ -8,6 +8,7 @@ set(HEADER_FILES
     #${CMAKE_CURRENT_SOURCE_DIR}/layereddepthprocessor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/clippingrenderprocessor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multipleplaneprocessor.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/processors/multiplaneraycaster.h
 )
 ivw_group("Header Files" ${HEADER_FILES})
 
@@ -17,6 +18,7 @@ set(SOURCE_FILES
     #${CMAKE_CURRENT_SOURCE_DIR}/layereddepthprocessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/clippingrenderprocessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multipleplaneprocessor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/processors/multiplaneraycaster.cpp
 )
 ivw_group("Source Files" ${SOURCE_FILES})
 
@@ -29,6 +31,7 @@ set(SHADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/clippingrenderprocessor.vert
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/multipleplaneprocessor.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/multipleplaneprocessor.vert
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl/layeredraycasting.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
 
