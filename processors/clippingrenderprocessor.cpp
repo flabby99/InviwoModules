@@ -118,7 +118,7 @@ void clippingRenderProcessor::process() {
     // Draw the front faces
     {
         utilgl::activateAndClearTarget(entryPort_);
-        //utilgl::CullFaceState cull(GL_BACK);
+        utilgl::CullFaceState cull(GL_BACK);
         drawer.draw();
         utilgl::deactivateCurrentTarget();
     }
@@ -126,7 +126,7 @@ void clippingRenderProcessor::process() {
     // Draw the back faces
     {
         utilgl::activateAndClearTarget(exitPort_);
-        //utilgl::CullFaceState cull(GL_FRONT);
+        utilgl::CullFaceState cull(GL_FRONT);
         drawer.draw();
     }
 
