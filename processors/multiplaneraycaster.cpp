@@ -65,7 +65,9 @@ LayeredRaycaster::LayeredRaycaster()
     , lighting_("lighting", "Lighting", &camera_)
     , positionIndicator_("positionindicator", "Position Indicator")
     , toggleShading_("toggleShading", "Toggle Shading", [this](Event* e) { toggleShading(e); },
-                     IvwKey::L) {
+                     IvwKey::L)
+    , rayLengthScale_("rayLengthScale", "Ray Length Scale", 1.0f, 1.0f, 20.0f, 0.1f)
+    , rayLengthBlock_("rayLengthBlock", "Ray Length Block", 0.0f, 0.0f, 2.0f, 0.01f) {
 
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
@@ -120,6 +122,9 @@ LayeredRaycaster::LayeredRaycaster()
     addProperty(lighting_);
     addProperty(positionIndicator_);
     addProperty(toggleShading_);
+
+    addProperty(rayLengthScale_);
+    addProperty(rayLengthBlock_);
 }
 
 const ProcessorInfo LayeredRaycaster::getProcessorInfo() const { return processorInfo_; }
@@ -168,7 +173,7 @@ void LayeredRaycaster::process() {
         utilgl::bindAndSetUniforms(shader_, units, backgroundPort_, ImageType::ColorDepthPicking);
     }
     utilgl::setUniforms(shader_, outport_, camera_, lighting_, raycasting_, positionIndicator_,
-                        channel_);
+                        channel_, rayLengthBlock_, rayLengthScale_);
 
     utilgl::singleDrawImagePlaneRect();
 

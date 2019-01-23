@@ -34,6 +34,7 @@
 #include <inviwo/core/common/inviwo.h>
 #include <inviwo/core/io/serialization/versionconverter.h>
 #include <inviwo/core/processors/processor.h>
+#include <inviwo/core/properties/ordinalproperty.h>
 #include <inviwo/core/properties/optionproperty.h>
 #include <inviwo/core/properties/isotfproperty.h>
 #include <inviwo/core/properties/raycastingproperty.h>
@@ -110,6 +111,9 @@ protected:
     SimpleLightingProperty lighting_;
     VolumeIndicatorProperty positionIndicator_;
     EventProperty toggleShading_;
+
+    FloatProperty rayLengthScale_;
+    FloatProperty rayLengthBlock_;
 };
 
 }  // namespace inviwo

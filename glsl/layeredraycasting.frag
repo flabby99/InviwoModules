@@ -67,6 +67,8 @@ uniform VolumeIndicatorParameters positionindicator;
 uniform RaycastingParameters raycaster;
 uniform IsovalueParameters isovalues;
 
+uniform float rayLengthScale;
+uniform float rayLengthBlock;
 uniform int channel;
 
 #define ERT_THRESHOLD 0.99  // threshold for early ray termination
@@ -79,7 +81,10 @@ uniform int channel;
 vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth, out vec4 pos) {
     vec4 result = vec4(0.0);
     vec3 rayDirection = exitPoint - entryPoint;
-    float tEnd = length(rayDirection) / 2;
+    float tEnd = length(rayDirection);
+    if (tEnd > rayLengthBlock) {
+        tEnd = tEnd / rayLengthScale;
+    }
     float tIncr = min(
         tEnd, tEnd / (raycaster.samplingRate * length(rayDirection * volumeParameters.dimensions)));
     float samples = ceil(tEnd / tIncr);
@@ -151,17 +156,17 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
                                        raycaster.isoValue, t, tDepth, tIncr);
         }
 #endif // INCLUDE_DVR
-
+        // ERT disabled for now
         // early ray termination
-        if (result.a > ERT_THRESHOLD + 1) {
-            t = tEnd;
-        } else {
+        //if (result.a > ERT_THRESHOLD + 1) {
+        //    t = tEnd;
+        //} else {
 #if defined(ISOSURFACE_ENABLED) && defined(INCLUDE_ISOSURFACES)
             // make sure that tIncr has the correct length since drawIsoSurface will modify it
             tIncr = tEnd / samples;
 #endif // ISOSURFACE_ENABLED
             t += tIncr;
-        }
+        //}
     }
 
     // composite background if lying beyond the last volume sample, which is located at tEnd - tIncr*0.5
@@ -207,7 +212,6 @@ void main() {
 #endif // BACKGROUND_AVAILABLE
     bool not_close_to_zero;
     bool not_zero = (dot(position, position) != 0);
-    //float is_not_too_close_to_zero = step(-PRECISION, val) * (1.0 - step(PRECISION, val));
     if (not_zero) {
         entryPoint = position;
         not_close_to_zero = any(greaterThan(abs(entryPoint - exitPoint), vec3(0.01)));
