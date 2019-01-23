@@ -56,7 +56,7 @@ LayeredRaycaster::LayeredRaycaster()
     , entryPort_("entry")
     , exitPort_("exit")
     , backgroundPort_("bg")
-    , outport_("outport")
+    , outport_("outport", DataVec4UInt16::get())
     , channel_("channel", "Render Channel")
     , raycasting_("raycaster", "Raycasting")
     , isotfComposite_("isotfComposite", "TF & Isovalues", &volumePort_,

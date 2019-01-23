@@ -69,7 +69,6 @@ uniform IsovalueParameters isovalues;
 
 uniform int channel;
 
-#define PRECISION 0.0001
 #define ERT_THRESHOLD 0.99  // threshold for early ray termination
 
 #if (!defined(INCLUDE_DVR) && !defined(INCLUDE_ISOSURFACES))
@@ -80,7 +79,7 @@ uniform int channel;
 vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth, out vec4 pos) {
     vec4 result = vec4(0.0);
     vec3 rayDirection = exitPoint - entryPoint;
-    float tEnd = length(rayDirection);
+    float tEnd = length(rayDirection) / 2;
     float tIncr = min(
         tEnd, tEnd / (raycaster.samplingRate * length(rayDirection * volumeParameters.dimensions)));
     float samples = ceil(tEnd / tIncr);
@@ -206,12 +205,17 @@ void main() {
         discard;
     }
 #endif // BACKGROUND_AVAILABLE
-    bool not_zero = dot(position, position) != 0;
+    bool not_close_to_zero;
+    bool not_zero = (dot(position, position) != 0);
     //float is_not_too_close_to_zero = step(-PRECISION, val) * (1.0 - step(PRECISION, val));
     if (not_zero) {
         entryPoint = position;
+        not_close_to_zero = any(greaterThan(abs(entryPoint - exitPoint), vec3(0.01)));
     }
-    if (length(entryPoint - exitPoint) > PRECISION) {
+    else {
+        not_close_to_zero = (entryPoint != exitPoint);
+    }
+    if (not_close_to_zero) {
         color = rayTraversal(entryPoint, exitPoint, texCoords, backgroundDepth, pos);
         PickingData = pos;
     }
