@@ -32,6 +32,7 @@
 #include <modules/layereddepth/processors/clippingrenderprocessor.h>
 #include <modules/layereddepth/processors/multiplaneraycaster.h>
 #include <modules/opengl/shader/shadermanager.h>
+#include <modules/layereddepth/processors/compositor.h>
 
 namespace inviwo {
 
@@ -39,6 +40,7 @@ layereddepthModule::layereddepthModule(InviwoApplication* app) : InviwoModule(ap
     registerProcessor<multipleplaneProcessor>();
     registerProcessor<clippingRenderProcessor>();
     registerProcessor<LayeredRaycaster>();
+    registerProcessor<LayeredCompositeProcessor>();
     // Add a directory to the search path of the Shadermanager
     ShaderManager::getPtr()->addShaderSearchPath(getPath(ModulePath::GLSL));
 
