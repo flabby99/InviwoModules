@@ -33,6 +33,7 @@
 #include <modules/opengl/shader/shaderutils.h>
 #include <modules/opengl/openglutils.h>
 #include <modules/opengl/rendering/meshdrawergl.h>
+#include <inviwo/core/datastructures/geometry/simplemesh.h>
 
 namespace inviwo {
 
@@ -54,9 +55,9 @@ clippingRenderProcessor::clippingRenderProcessor()
     , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), &inport_)
     , trackball_(&camera_)
     , planeNormal_("normal", "Plane normal", vec3(0.0f), vec3(-100.0f), vec3(100.0f))
+    , useCameraNormalAsPlane_("camNormal", "Use camera normal as plane normal", true)
     , planeDistance_("distance", "Plane distance along normal", 0.0f, -10.0f, 10.0f)
     , planeReverseDistance_("reverse_distance", "Reverse plane distance along normal", 0.0f, -10.0f, 10.0f)
-    , useCameraNormalAsPlane_("camNormal", "Use camera normal as plane normal", true)
     , shader_("clippingrenderprocessor.vert", "clippingrenderprocessor.frag")
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
@@ -77,6 +78,11 @@ clippingRenderProcessor::clippingRenderProcessor()
         [this]() { onAlignPlaneNormalToCameraNormalToggled(); });
 }
 
+clippingRenderProcessor::~clippingRenderProcessor() {
+    glDeleteBuffers(1, &front_buffer_id_);
+    glDeleteBuffers(1, &back_buffer_id_);
+}
+
 void clippingRenderProcessor::onAlignPlaneNormalToCameraNormalToggled() {
     planeNormal_.setReadOnly(useCameraNormalAsPlane_.get());
     if (useCameraNormalAsPlane_.get()) {           
@@ -86,7 +92,91 @@ void clippingRenderProcessor::onAlignPlaneNormalToCameraNormalToggled() {
 
 void clippingRenderProcessor::initializeResources() {
     shader_.build();
+    glGenBuffers(1, &front_buffer_id_);
+    glGenBuffers(1, &back_buffer_id_);
 }
+
+// Parallelepiped is laid out as:
+    //      2-----3
+    //     /|    /|          y
+    //    6-+---7 |          |
+    //    | 0---+-1          o--x
+    //    |/    |/          /
+    //    4-----5          z
+
+void clippingRenderProcessor::calculatePlaneIntersectionPoints(std::vector<vec3> &out_points, const float &planeDistance, const vec3 &planeNormal) {
+    const std::vector<vec3>* vertexList;
+    mat4 worldMatrix = inport_.getData().get()->getCoordinateTransformer(camera_.get()).getDataToWorldMatrix();
+
+    
+    if (auto simple = dynamic_cast<const SimpleMesh*>(inport_.getData().get())) {
+        vertexList = &simple->getVertexList()->getRAMRepresentation()->getDataContainer();
+        
+        // Check it is parallelepiped
+        if(vertexList->size() == 8) {
+            unsigned int num_edges = 12;
+            vec3 rayDir;
+            vec3 rayOrig;
+            vec3 rayEnd;
+
+            // Build a set of edges to test as start->end
+            unsigned int points[24] = {
+                0, 1, 2, 3, 4, 5, 6, 7, // Test edges facing along x axis
+                0, 2, 1, 3, 4, 6, 5, 7, // Test edges facing along y axis
+                0, 4, 1, 5, 3, 7, 2, 6 // Test edges facing along z axis
+            };
+            
+            for(unsigned int i = 0; i < num_edges; ++i) {   
+                // Rays are in world space
+                rayOrig = vec3(worldMatrix * vec4(vertexList->at(points[2 * i]), 1.f));
+                rayEnd = vec3(worldMatrix * vec4(vertexList->at(points[2 * i + 1]), 1.f));
+                rayDir = rayEnd - rayOrig;
+                std::cout << i << rayOrig << rayDir << std::endl;
+                calculatePlaneIntersectionPoint(out_points, rayOrig, rayDir, planeDistance, planeNormal);
+            }
+        }
+        else {
+            throw Exception("Unsupported mesh type, only parallelepipeds are supported");
+        }
+    }
+    else {
+        throw Exception("Unsupported mesh type, only simple meshes are supported");
+    }
+    
+}
+
+void clippingRenderProcessor::calculatePlaneIntersectionPoint(std::vector<vec3> &out_points, const vec3 &rayOrig, const vec3 &rayDir, const float &planeDistance, const vec3 &planeNormal) {
+    float v = 0.f;
+    float t = 0.f;
+    if (rayIntersectsPlane(rayOrig, rayDir, planeNormal, planeDistance, t, v) && t > 0.f && t <= 1.f) {
+        out_points.push_back(rayOrig + (t * rayDir));
+    }
+}
+
+bool clippingRenderProcessor::rayIntersectsPlane(
+    const vec3 &rayOrig, const vec3 &rayDir, const vec3 &planeNormal, 
+    const float &planeDistance, float &t, float &v) {
+    v = glm::dot(planeNormal, rayDir);
+    // If the plane is parallel to the ray, they will not intersect
+    if (v < 0.00001f)
+        return false;
+    float dotProduct = glm::dot(planeNormal, rayOrig);
+    t = -(dotProduct + planeDistance) / v;
+    return true;
+}
+
+void clippingRenderProcessor::sortPlaneIntersectionPoints(std::vector<vec3> &out_points, const vec3 &planeNormal) {
+    if (out_points.size() == 0)
+        return;
+    const vec3 origin = out_points[0];
+    
+    std::sort(out_points.begin(), out_points.end(), [&](const vec3 &lhs, const vec3 &rhs) -> bool {
+        vec3 v;
+        v = glm::cross((lhs - origin), (rhs - origin));
+        return glm::dot(v, planeNormal) < 0;
+    });
+}
+
 
 void clippingRenderProcessor::process() {
     if (useCameraNormalAsPlane_.get()) {           
@@ -99,14 +189,13 @@ void clippingRenderProcessor::process() {
     mat4 viewMatrix = inport_.getData().get()->getCoordinateTransformer(camera_.get()).getWorldToViewMatrix();
     mat4 worldMatrix = inport_.getData().get()->getCoordinateTransformer(camera_.get()).getDataToWorldMatrix();
     mat4 mvpMatrix = projectionMatrix * viewMatrix * worldMatrix;
+    mat4 vpMatrix = projectionMatrix * viewMatrix;
 
-    // Turn on clipping plane distances
-    glEnable(GL_CLIP_DISTANCE0);
     auto planeNormal = planeNormal_.get();
+    auto planeReverseNormal = vec3(-planeNormal[0], -planeNormal[1], -planeNormal[2]);
+    
     vec4 planeEquation = vec4(planeNormal[0], planeNormal[1], planeNormal[2], planeDistance_);
-
-    glEnable(GL_CLIP_DISTANCE1);
-    vec4 reversePlaneEquation = vec4(-planeNormal[0], -planeNormal[1], -planeNormal[2], planeReverseDistance_);
+    vec4 reversePlaneEquation = vec4(planeReverseNormal[0], planeReverseNormal[1], planeReverseNormal[2], planeReverseDistance_);
 
     shader_.activate();
     shader_.setUniform("clipPlane", planeEquation);
@@ -117,21 +206,74 @@ void clippingRenderProcessor::process() {
 
     // Draw the front faces
     {
+        // Turn on clipping plane distances
+        glEnable(GL_CLIP_DISTANCE0);
+        glEnable(GL_CLIP_DISTANCE1);
         utilgl::activateAndClearTarget(entryPort_);
         utilgl::CullFaceState cull(GL_BACK);
         drawer.draw();
+    }
+    
+    // Draw the front facing polygon intersection
+    {
+        std::vector<vec3> points;
+        // Maximum 6 interesection points
+        points.reserve(6);
+        calculatePlaneIntersectionPoints(points, planeDistance_.get(), planeNormal);
+        sortPlaneIntersectionPoints(points, planeNormal);
+        std::cout << "Polygon front points:" << std::endl;
+        for (vec3 point : points) {
+            std::cout << point << std::endl;
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, front_buffer_id_);
+        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(GLfloat), points.data(), GL_STATIC_DRAW);
+
+        glDisable(GL_CLIP_DISTANCE0);
+        glDisable(GL_CLIP_DISTANCE1);
+
+        shader_.setUniform("dataToClip", vpMatrix);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         utilgl::deactivateCurrentTarget();
     }
 
     // Draw the back faces
     {
+        // Turn on clipping plane distances
+        glEnable(GL_CLIP_DISTANCE0);
+        glEnable(GL_CLIP_DISTANCE1);
         utilgl::activateAndClearTarget(exitPort_);
         utilgl::CullFaceState cull(GL_FRONT);
+        shader_.setUniform("dataToClip", mvpMatrix);
         drawer.draw();
     }
 
+    // Draw the back facing polygon intersection
+    {
+        std::vector<vec3> points;
+        // Maximum 6 interesection points
+        points.reserve(6);
+        calculatePlaneIntersectionPoints(points, planeReverseDistance_.get(), planeReverseNormal);
+        sortPlaneIntersectionPoints(points, planeReverseNormal);
+        std::cout << "Polygon back points:" << std::endl;
+        for (vec3 point : points) {
+            std::cout << point << std::endl;
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, back_buffer_id_);
+        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(GLfloat), points.data(), GL_STATIC_DRAW);
+
+        glDisable(GL_CLIP_DISTANCE0);
+        glDisable(GL_CLIP_DISTANCE1);
+
+        shader_.setUniform("dataToClip", mvpMatrix);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        utilgl::deactivateCurrentTarget();
+    }
+
     shader_.deactivate();
-    utilgl::deactivateCurrentTarget();
 }
 
 }  // namespace inviwo

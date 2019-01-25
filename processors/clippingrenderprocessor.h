@@ -41,6 +41,8 @@
 #include <inviwo/core/datastructures/camera.h>
 #include <inviwo/core/properties/cameraproperty.h>
 #include <inviwo/core/interaction/cameratrackball.h>
+#include <vector>
+//#include <modules/opengl/ext/glew/include/GL/glew.h>
 
 namespace inviwo {
 
@@ -67,7 +69,7 @@ namespace inviwo {
 class IVW_MODULE_LAYEREDDEPTH_API clippingRenderProcessor : public Processor {
 public:
     clippingRenderProcessor();
-    virtual ~clippingRenderProcessor() = default;
+    virtual ~clippingRenderProcessor() override;
 
     virtual void process() override;
 
@@ -78,6 +80,12 @@ public:
 
 private:
     void onAlignPlaneNormalToCameraNormalToggled();
+    bool rayIntersectsPlane(
+        const vec3 &rayOrig, const vec3 &rayDir, const vec3 &planeNormal, 
+        const float &planeDistance, float &t, float &v);
+    void calculatePlaneIntersectionPoints(std::vector<vec3> &out_points, const float &planeDistance, const vec3 &planeNormal);
+    void calculatePlaneIntersectionPoint(std::vector<vec3> &out_points, const vec3 &rayOrig, const vec3 &rayDir, const float &planeDistance, const vec3 &planeNormal);
+    void sortPlaneIntersectionPoints(std::vector<vec3> &out_points, const vec3 &planeNormal);
     MeshInport inport_;
     ImageOutport entryPort_;
     ImageOutport exitPort_;
@@ -90,6 +98,9 @@ private:
     FloatProperty planeDistance_;
     FloatProperty planeReverseDistance_;
     Shader shader_;
+
+    GLuint front_buffer_id_;
+    GLuint back_buffer_id_;
 };
 
 }  // namespace inviwo
