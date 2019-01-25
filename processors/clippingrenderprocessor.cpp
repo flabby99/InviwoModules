@@ -106,7 +106,7 @@ void clippingRenderProcessor::initializeResources() {
 
 void clippingRenderProcessor::calculatePlaneIntersectionPoints(std::vector<vec3> &out_points, const float &planeDistance, const vec3 &planeNormal) {
     const std::vector<vec3>* vertexList;
-    mat4 worldMatrix = inport_.getData().get()->getCoordinateTransformer(camera_.get()).getDataToWorldMatrix();
+    mat4 worldMatrix = inport_.getData().get()->getCoordinateTransformer().getDataToWorldMatrix();
 
     
     if (auto simple = dynamic_cast<const SimpleMesh*>(inport_.getData().get())) {
@@ -126,13 +126,24 @@ void clippingRenderProcessor::calculatePlaneIntersectionPoints(std::vector<vec3>
                 0, 4, 1, 5, 3, 7, 2, 6 // Test edges facing along z axis
             };
             
+            auto geom = inport_.getData();
+            auto worldToData = geom->getCoordinateTransformer().getWorldToDataMatrix();
+            auto worldToDataNormal = glm::transpose(glm::inverse(worldToData));
+            vec3 planePos = planeNormal * planeDistance;
+            auto dataSpacePos = vec3(worldToData * vec4(planePos, 1.0));
+            auto dataSpaceOrigin = vec3(worldToData * vec4(0, 0, 0, 1.0));
+            auto dataSpaceDistance = glm::distance(dataSpaceOrigin, dataSpacePos);
+            auto dataSpaceNormal = glm::normalize(vec3(worldToDataNormal * vec4(planeNormal, 0.0)));
+
             for(unsigned int i = 0; i < num_edges; ++i) {   
                 // Rays are in world space
-                rayOrig = vec3(worldMatrix * vec4(vertexList->at(points[2 * i]), 1.f));
-                rayEnd = vec3(worldMatrix * vec4(vertexList->at(points[2 * i + 1]), 1.f));
+                //rayOrig = vec3(worldMatrix * vec4(vertexList->at(points[2 * i]), 1.f));
+                //rayEnd = vec3(worldMatrix * vec4(vertexList->at(points[2 * i + 1]), 1.f));
+                rayOrig = vertexList->at(points[2 * i]);
+                rayEnd = vertexList->at(points[2 * i + 1]);
                 rayDir = rayEnd - rayOrig;
                 std::cout << i << rayOrig << rayDir << std::endl;
-                calculatePlaneIntersectionPoint(out_points, rayOrig, rayDir, planeDistance, planeNormal);
+                calculatePlaneIntersectionPoint(out_points, rayOrig, rayDir, dataSpaceDistance, dataSpaceNormal);
             }
         }
         else {
@@ -153,6 +164,8 @@ void clippingRenderProcessor::calculatePlaneIntersectionPoint(std::vector<vec3> 
     }
 }
 
+// This is based on subbing a ray r0 + t * rd into a plane equation Ax + By + Cz + D = 0 and solving for t
+// If t lies between 0 and 1, then the intersection point of the ray and the plane lies on the ray
 bool clippingRenderProcessor::rayIntersectsPlane(
     const vec3 &rayOrig, const vec3 &rayDir, const vec3 &planeNormal, 
     const float &planeDistance, float &t, float &v) {
@@ -231,7 +244,7 @@ void clippingRenderProcessor::process() {
         glDisable(GL_CLIP_DISTANCE0);
         glDisable(GL_CLIP_DISTANCE1);
 
-        shader_.setUniform("dataToClip", vpMatrix);
+        //shader_.setUniform("dataToClip", vpMatrix);
         glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
         
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -245,7 +258,7 @@ void clippingRenderProcessor::process() {
         glEnable(GL_CLIP_DISTANCE1);
         utilgl::activateAndClearTarget(exitPort_);
         utilgl::CullFaceState cull(GL_FRONT);
-        shader_.setUniform("dataToClip", mvpMatrix);
+        //shader_.setUniform("dataToClip", mvpMatrix);
         drawer.draw();
     }
 
@@ -266,7 +279,7 @@ void clippingRenderProcessor::process() {
         glDisable(GL_CLIP_DISTANCE0);
         glDisable(GL_CLIP_DISTANCE1);
 
-        shader_.setUniform("dataToClip", mvpMatrix);
+        //shader_.setUniform("dataToClip", mvpMatrix);
         glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
         
         glBindBuffer(GL_ARRAY_BUFFER, 0);
