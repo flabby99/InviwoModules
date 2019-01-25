@@ -248,7 +248,7 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
                     //Otherwise the both lie outside of the plane so there is no need to do anything
                 }
             }
-            
+
             // Sort the points
             if (out_points.size() == 0)
                 return;
@@ -304,38 +304,44 @@ void clippingRenderProcessor::process() {
         utilgl::CullFaceState cull(GL_BACK);
         drawer.draw();    
     }
+    
     shader_.deactivate();
     faceShader_.activate();
     faceShader_.setUniform("dataToClip", mvpMatrix);
+    
 
     // Draw the front facing polygon intersection
     {
         std::vector<vec3> points;
         // Maximum 6 interesection points
         points.reserve(6);
-        //calculatePlaneIntersectionPoints(points, planeDistance_.get(), planeNormal);
         Plane forwardPlane = Plane(-planeDistance_.get() * planeNormal, planeNormal);
         InviwoPlaneIntersectionPoints(points, forwardPlane);
-        sortPlaneIntersectionPoints(points, planeNormal);
         std::cout << "Polygon front points:" << std::endl;
         for (vec3 point : points) {
             std::cout << point << std::endl;
         }
-        glBindBuffer(GL_ARRAY_BUFFER, front_buffer_id_);
-        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(GLfloat), points.data(), GL_STATIC_DRAW);
+
+        auto ppd=std::make_shared<SimpleMesh>();
+        ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
+        for(unsigned int i = 0; i < points.size(); ++i){
+            ppd->addVertex(points[i], points[i], vec4(points[i], 1.0f));
+            ppd->addIndex(i);
+        }
 
         glDisable(GL_CLIP_DISTANCE0);
         glDisable(GL_CLIP_DISTANCE1);
 
-        //shader_.setUniform("dataToClip", vpMatrix);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
-        
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        utilgl::deactivateCurrentTarget();
-    }
+        auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
+        new_drawer.draw();
 
+        //utilgl::deactivateCurrentTarget();
+    }
+    
     faceShader_.deactivate();
     shader_.activate();
+
+    auto drawer2 = MeshDrawerGL::getDrawObject(inport_.getData().get());
     // Draw the back faces
     {
         // Turn on clipping plane distances
@@ -343,10 +349,9 @@ void clippingRenderProcessor::process() {
         glEnable(GL_CLIP_DISTANCE1);
         utilgl::activateAndClearTarget(exitPort_);
         utilgl::CullFaceState cull(GL_FRONT);
-        //shader_.setUniform("dataToClip", mvpMatrix);
-        drawer.draw();
+        drawer2.draw();
     }
-
+    
     shader_.deactivate();
     faceShader_.activate();
     // Draw the back facing polygon intersection
@@ -354,27 +359,28 @@ void clippingRenderProcessor::process() {
         std::vector<vec3> points;
         // Maximum 6 interesection points
         points.reserve(6);
-        //calculatePlaneIntersectionPoints(points, planeReverseDistance_.get(), planeReverseNormal);
         Plane backwardPlane = Plane(-planeReverseDistance_.get() * planeReverseNormal, planeReverseNormal);
         InviwoPlaneIntersectionPoints(points, backwardPlane);
-        sortPlaneIntersectionPoints(points, planeReverseNormal);
         std::cout << "Polygon back points:" << std::endl;
         for (vec3 point : points) {
             std::cout << point << std::endl;
         }
-        glBindBuffer(GL_ARRAY_BUFFER, back_buffer_id_);
-        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(GLfloat), points.data(), GL_STATIC_DRAW);
+
+        auto ppd=std::make_shared<SimpleMesh>();
+        ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
+        for(unsigned int i = 0; i < points.size(); ++i){
+            ppd->addVertex(points[i], points[i], vec4(points[i], 1.0f));
+            ppd->addIndex(i);
+        }
 
         glDisable(GL_CLIP_DISTANCE0);
         glDisable(GL_CLIP_DISTANCE1);
 
-        //shader_.setUniform("dataToClip", mvpMatrix);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, points.size());
-        
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        utilgl::deactivateCurrentTarget();
+        auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
+        new_drawer.draw();
     }
-
+    
+    utilgl::deactivateCurrentTarget();
     faceShader_.deactivate();
 }
 

@@ -33,7 +33,7 @@ out vec3 texCoord_;
 
 void main(void) {
     texCoord_ = in_TexCoord;
-    vec4 pos = dataToClip * in_Vertex;
     color_ = in_Color;
-    gl_Position = vec4(-pos.x, pos.yzw);
+    vec4 pos = dataToClip * in_Vertex;
+    gl_Position = pos;
 }
