@@ -82,12 +82,6 @@ public:
 
 private:
     void onAlignPlaneNormalToCameraNormalToggled();
-    bool rayIntersectsPlane(
-        const vec3 &rayOrig, const vec3 &rayDir, const vec3 &planeNormal, 
-        const float &planeDistance, float &t, float &v);
-    void calculatePlaneIntersectionPoints(std::vector<vec3> &out_points, const float &planeDistance, const vec3 &planeNormal);
-    void calculatePlaneIntersectionPoint(std::vector<vec3> &out_points, const vec3 &rayOrig, const vec3 &rayDir, const float &planeDistance, const vec3 &planeNormal);
-    void sortPlaneIntersectionPoints(std::vector<vec3> &out_points, const vec3 &planeNormal);
     void InviwoPlaneIntersectionPoints(std::vector<vec3> &out_points, const Plane& worldSpacePlane);
     MeshInport inport_;
     ImageOutport entryPort_;
@@ -102,9 +96,6 @@ private:
     FloatProperty planeReverseDistance_;
     Shader shader_;
     Shader faceShader_;
-
-    GLuint front_buffer_id_;
-    GLuint back_buffer_id_;
 };
 
 }  // namespace inviwo
