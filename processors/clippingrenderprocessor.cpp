@@ -134,7 +134,6 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
                 rayEnd = vertexList->at(points[2 * i + 1]);
                 rayDir = rayEnd - rayOrig;
 
-                std::cout << "for " << i << " rayOrig " << rayOrig << " rayEnd " << rayEnd << std::endl;
                 if(plane.isInside(rayOrig)) {
                     if(plane.isInside(rayEnd)) {
                         //Both lie inside the plane, no intersection point
@@ -226,10 +225,6 @@ void clippingRenderProcessor::process() {
         points.reserve(6);
         Plane forwardPlane = Plane(-planeDistance_.get() * planeNormal, planeNormal);
         InviwoPlaneIntersectionPoints(points, forwardPlane);
-        std::cout << "Polygon front points:" << std::endl;
-        for (vec3 point : points) {
-            std::cout << point << std::endl;
-        }
 
         auto ppd=std::make_shared<SimpleMesh>();
         ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
@@ -268,10 +263,6 @@ void clippingRenderProcessor::process() {
         points.reserve(6);
         Plane backwardPlane = Plane(-planeReverseDistance_.get() * planeReverseNormal, planeReverseNormal);
         InviwoPlaneIntersectionPoints(points, backwardPlane);
-        std::cout << "Polygon back points:" << std::endl;
-        for (vec3 point : points) {
-            std::cout << point << std::endl;
-        }
 
         auto ppd=std::make_shared<SimpleMesh>();
         ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
