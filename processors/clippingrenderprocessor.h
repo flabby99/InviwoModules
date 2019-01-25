@@ -101,6 +101,7 @@ private:
     FloatProperty planeDistance_;
     FloatProperty planeReverseDistance_;
     Shader shader_;
+    Shader faceShader_;
 
     GLuint front_buffer_id_;
     GLuint back_buffer_id_;

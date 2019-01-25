@@ -59,8 +59,10 @@ clippingRenderProcessor::clippingRenderProcessor()
     , planeDistance_("distance", "Plane distance along normal", 0.0f, -10.0f, 10.0f)
     , planeReverseDistance_("reverse_distance", "Reverse plane distance along normal", 0.0f, -10.0f, 10.0f)
     , shader_("clippingrenderprocessor.vert", "clippingrenderprocessor.frag")
+    , faceShader_("facerender.vert", "facerender.frag")
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
+    faceShader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
     addPort(inport_);
     addPort(entryPort_, "ImagePortGroup1");
@@ -92,6 +94,7 @@ void clippingRenderProcessor::onAlignPlaneNormalToCameraNormalToggled() {
 
 void clippingRenderProcessor::initializeResources() {
     shader_.build();
+    faceShader_.build();
     glGenBuffers(1, &front_buffer_id_);
     glGenBuffers(1, &back_buffer_id_);
 }
@@ -220,6 +223,8 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
                 rayOrig = vertexList->at(points[2 * i]);
                 rayEnd = vertexList->at(points[2 * i + 1]);
                 rayDir = rayEnd - rayOrig;
+
+                std::cout << "for " << i << " rayOrig " << rayOrig << " rayEnd " << rayEnd << std::endl;
                 if(plane.isInside(rayOrig)) {
                     if(plane.isInside(rayEnd)) {
                         //Both lie inside the plane, no intersection point
@@ -243,6 +248,16 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
                     //Otherwise the both lie outside of the plane so there is no need to do anything
                 }
             }
+            
+            // Sort the points
+            if (out_points.size() == 0)
+                return;
+            const vec3 origin = out_points[0];
+        
+            std::sort(out_points.begin(), out_points.end(), [&](const vec3 &lhs, const vec3 &rhs) -> bool {
+                vec3 v = glm::cross((lhs - origin), (rhs - origin));
+                return glm::dot(v, dataSpaceNormal) < 0;
+            });
         }
         else {
             throw Exception("Unsupported mesh type, only parallelepipeds are supported");
@@ -287,9 +302,12 @@ void clippingRenderProcessor::process() {
         glEnable(GL_CLIP_DISTANCE1);
         utilgl::activateAndClearTarget(entryPort_);
         utilgl::CullFaceState cull(GL_BACK);
-        drawer.draw();
+        drawer.draw();    
     }
-    
+    shader_.deactivate();
+    faceShader_.activate();
+    faceShader_.setUniform("dataToClip", mvpMatrix);
+
     // Draw the front facing polygon intersection
     {
         std::vector<vec3> points;
@@ -316,6 +334,8 @@ void clippingRenderProcessor::process() {
         utilgl::deactivateCurrentTarget();
     }
 
+    faceShader_.deactivate();
+    shader_.activate();
     // Draw the back faces
     {
         // Turn on clipping plane distances
@@ -327,6 +347,8 @@ void clippingRenderProcessor::process() {
         drawer.draw();
     }
 
+    shader_.deactivate();
+    faceShader_.activate();
     // Draw the back facing polygon intersection
     {
         std::vector<vec3> points;
@@ -353,7 +375,7 @@ void clippingRenderProcessor::process() {
         utilgl::deactivateCurrentTarget();
     }
 
-    shader_.deactivate();
+    faceShader_.deactivate();
 }
 
 }  // namespace inviwo

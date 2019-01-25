@@ -35,6 +35,8 @@ set(SHADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/multipleplaneprocessor.vert
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/layeredraycasting.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/layeredcomposite.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl/facerender.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl/facerender.vert
 )
 ivw_group("Shader Files" ${SHADER_FILES})
 
