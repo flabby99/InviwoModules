@@ -42,6 +42,8 @@
 #include <inviwo/core/properties/cameraproperty.h>
 #include <inviwo/core/interaction/cameratrackball.h>
 #include <vector>
+#include <inviwo/core/datastructures/geometry/plane.h>
+
 //#include <modules/opengl/ext/glew/include/GL/glew.h>
 
 namespace inviwo {
@@ -86,6 +88,7 @@ private:
     void calculatePlaneIntersectionPoints(std::vector<vec3> &out_points, const float &planeDistance, const vec3 &planeNormal);
     void calculatePlaneIntersectionPoint(std::vector<vec3> &out_points, const vec3 &rayOrig, const vec3 &rayDir, const float &planeDistance, const vec3 &planeNormal);
     void sortPlaneIntersectionPoints(std::vector<vec3> &out_points, const vec3 &planeNormal);
+    void InviwoPlaneIntersectionPoints(std::vector<vec3> &out_points, const Plane& worldSpacePlane);
     MeshInport inport_;
     ImageOutport entryPort_;
     ImageOutport exitPort_;

@@ -190,6 +190,69 @@ void clippingRenderProcessor::sortPlaneIntersectionPoints(std::vector<vec3> &out
     });
 }
 
+void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &out_points, const Plane& worldSpacePlane) {
+    auto geom = inport_.getData();
+    auto worldToData = geom->getCoordinateTransformer().getWorldToDataMatrix();
+    auto worldToDataNormal = glm::transpose(glm::inverse(worldToData));
+    auto dataSpacePos = vec3(worldToData * vec4(worldSpacePlane.getPoint(), 1.0));
+    auto dataSpaceNormal =
+        glm::normalize(vec3(worldToDataNormal * vec4(worldSpacePlane.getNormal(), 0.0)));
+    Plane plane(dataSpacePos, dataSpaceNormal);
+
+    if (auto simple = dynamic_cast<const SimpleMesh*>(inport_.getData().get())) {
+        const std::vector<vec3>* vertexList = &simple->getVertexList()->getRAMRepresentation()->getDataContainer();
+        
+        // Check it is parallelepiped
+        if(vertexList->size() == 8) {
+            unsigned int num_edges = 12;
+            vec3 rayDir;
+            vec3 rayOrig;
+            vec3 rayEnd;
+
+            // Build a set of edges to test as start->end
+            unsigned int points[24] = {
+                0, 1, 2, 3, 4, 5, 6, 7, // Test edges facing along x axis
+                0, 2, 1, 3, 4, 6, 5, 7, // Test edges facing along y axis
+                0, 4, 1, 5, 3, 7, 2, 6 // Test edges facing along z axis
+            };
+            
+            for(unsigned int i = 0; i < num_edges; ++i) {   
+                rayOrig = vertexList->at(points[2 * i]);
+                rayEnd = vertexList->at(points[2 * i + 1]);
+                rayDir = rayEnd - rayOrig;
+                if(plane.isInside(rayOrig)) {
+                    if(plane.isInside(rayEnd)) {
+                        //Both lie inside the plane, no intersection point
+                    }
+                    else { //the end lies outside the plane so there is intersection
+                        vec3 intersection = 
+                        plane
+                                .getIntersection(rayOrig, rayEnd)
+                                .intersection_;
+                        out_points.push_back(intersection);
+                    }
+                }
+                else {
+                    if(plane.isInside(rayEnd)) { // the end lies inside the plane
+                        vec3 intersection = 
+                        plane
+                                .getIntersection(rayOrig, rayEnd)
+                                .intersection_;
+                        out_points.push_back(intersection);
+                    }
+                    //Otherwise the both lie outside of the plane so there is no need to do anything
+                }
+            }
+        }
+        else {
+            throw Exception("Unsupported mesh type, only parallelepipeds are supported");
+        }
+    }
+    else {
+        throw Exception("Unsupported mesh type, only simple meshes are supported");
+    }
+    
+}
 
 void clippingRenderProcessor::process() {
     if (useCameraNormalAsPlane_.get()) {           
@@ -232,7 +295,9 @@ void clippingRenderProcessor::process() {
         std::vector<vec3> points;
         // Maximum 6 interesection points
         points.reserve(6);
-        calculatePlaneIntersectionPoints(points, planeDistance_.get(), planeNormal);
+        //calculatePlaneIntersectionPoints(points, planeDistance_.get(), planeNormal);
+        Plane forwardPlane = Plane(-planeDistance_.get() * planeNormal, planeNormal);
+        InviwoPlaneIntersectionPoints(points, forwardPlane);
         sortPlaneIntersectionPoints(points, planeNormal);
         std::cout << "Polygon front points:" << std::endl;
         for (vec3 point : points) {
@@ -267,7 +332,9 @@ void clippingRenderProcessor::process() {
         std::vector<vec3> points;
         // Maximum 6 interesection points
         points.reserve(6);
-        calculatePlaneIntersectionPoints(points, planeReverseDistance_.get(), planeReverseNormal);
+        //calculatePlaneIntersectionPoints(points, planeReverseDistance_.get(), planeReverseNormal);
+        Plane backwardPlane = Plane(-planeReverseDistance_.get() * planeReverseNormal, planeReverseNormal);
+        InviwoPlaneIntersectionPoints(points, backwardPlane);
         sortPlaneIntersectionPoints(points, planeReverseNormal);
         std::cout << "Polygon back points:" << std::endl;
         for (vec3 point : points) {
