@@ -1,6 +1,6 @@
-#include <modules/layereddepth/include/vertexarray.h>
+#include <modules/layereddepth/helpers/vertexarray.h>
 
-namespace buffer {
+namespace inviwo {
     VertexArray::VertexArray()
     {
         glGenVertexArrays(1, &renderer_id_);
@@ -38,4 +38,4 @@ namespace buffer {
       glVertexAttribPointer(index, 2, GL_FLOAT, GL_FALSE, 0, NULL);
       attached_vbs.push_back(vb);
     }
-} //namespace buffer
+} //namespace inviwo

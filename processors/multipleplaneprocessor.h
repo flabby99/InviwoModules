@@ -31,7 +31,8 @@
 #define IVW_MULTIPLEPLANEPROCESSOR_H
 
 #include <modules/layereddepth/layereddepthmoduledefine.h>
-#include <modules/layereddepth/include/vertexarray.h>
+#include <modules/layereddepth/helpers/vertexarray.h>
+#include <modules/layereddepth/helpers/vertexbuffer.h>
 #include <inviwo/core/common/inviwo.h>
 #include <inviwo/core/processors/processor.h>
 #include <inviwo/core/properties/ordinalproperty.h>
@@ -41,10 +42,6 @@
 #include <inviwo/core/properties/cameraproperty.h>
 #include <inviwo/core/interaction/cameratrackball.h>
 #include <inviwo/core/properties/boolproperty.h>
-
-namespace buffer {
-    class VertexBuffer;
-}
 
 namespace inviwo {
 
@@ -104,8 +101,8 @@ private:
     unsigned int width_;
     unsigned int height_;
     
-    buffer::VertexArray va_;
-    std::shared_ptr<buffer::VertexBuffer> vb_;
+    VertexArray va_;
+    std::shared_ptr<VertexBuffer> vb_;
 };
 
 }  // namespace inviwo

@@ -44,8 +44,6 @@
 #include <vector>
 #include <inviwo/core/datastructures/geometry/plane.h>
 
-//#include <modules/opengl/ext/glew/include/GL/glew.h>
-
 namespace inviwo {
 
 /** \docpage{org.inviwo.clippingRenderProcessor, clipping Render Processor}

@@ -1,6 +1,6 @@
-#include <modules/layereddepth/include/vertexbuffer.h>
+#include <modules/layereddepth/helpers/vertexbuffer.h>
 
-namespace buffer {
+namespace inviwo {
     VertexBuffer::VertexBuffer(const void* data, unsigned int size)
     {
         glGenBuffers(1, &renderer_id_);
@@ -22,4 +22,4 @@ namespace buffer {
     {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
-} //namespace buffer
+} //namespace inviwo

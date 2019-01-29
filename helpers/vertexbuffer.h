@@ -3,8 +3,9 @@
 
 #include <modules/layereddepth/layereddepthmoduledefine.h>
 #include <inviwo/core/common/inviwo.h>
+#include <modules/opengl/inviwoopengl.h>
 
-namespace buffer {
+namespace inviwo {
     class IVW_MODULE_LAYEREDDEPTH_API VertexBuffer
     {
     public:
@@ -16,6 +17,6 @@ namespace buffer {
     private:
         GLuint renderer_id_;
     };
-} //namespace buffer
+} //namespace inviwo
 
 #endif //IVW_VERTEX_BUFFER_H

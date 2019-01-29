@@ -3,9 +3,10 @@
 
 #include <modules/layereddepth/layereddepthmoduledefine.h>
 #include <inviwo/core/common/inviwo.h>
-#include <modules/layereddepth/include/vertexbuffer.h>
+#include <modules/layereddepth/helpers/vertexbuffer.h>
+#include <modules/opengl/inviwoopengl.h>
 
-namespace buffer {
+namespace inviwo {
     class IVW_MODULE_LAYEREDDEPTH_API VertexArray
     {
     public:
@@ -19,6 +20,6 @@ namespace buffer {
         GLuint renderer_id_;
         std::list<std::shared_ptr<VertexBuffer>> attached_vbs;
     };
-} //namespace buffer
+} //namespace inviwo
 
 #endif //IVW_VERTEX_ARRAY_H
