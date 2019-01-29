@@ -101,7 +101,7 @@ private:
     unsigned int width_;
     unsigned int height_;
     
-    VertexArray va_;
+    std::unique_ptr<VertexArray> va_;
     std::shared_ptr<VertexBuffer> vb_;
 };
 

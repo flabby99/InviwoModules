@@ -54,12 +54,11 @@ multipleplaneProcessor::multipleplaneProcessor()
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
     , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
-    , shader_("multipleplaneProcessor.vert", "multipleplaneProcessor.frag")
+    , shader_("multipleplaneprocessor.vert", "multipleplaneprocessor.frag")
     , gridPosition_("position", "Grid Position", 0, 0, 44, 1)
     , grid_(NULL)
     , outportXDim_(819)
     , outportYDim_(455)
-    , va_()
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
@@ -91,11 +90,12 @@ void multipleplaneProcessor::~multipleplaneProcessor() {
 
 void multipleplaneProcessor::initializeResources() {
     createVertexGrid(grid_, width_, height_);
+    va_ = std::make_unique<VertexArray>();
     vb_ = std::make_shared<VertexBuffer>(
         grid_, (unsigned int)sizeof(float) * 2 * width_ * height_
     );
     delete[] grid_;
-    va_.Addbuffer_2f(vb_, 0);
+    va_->Addbuffer_2f(vb_, 0);
 
     shader_.build();
 }
@@ -105,8 +105,8 @@ void multipleplaneProcessor::initializeResources() {
 void multipleplaneProcessor::createVertexGrid(float* grid, const unsigned int width, const unsigned int height) {
     float width_increment = 1.0f / width;
     float height_increment = 1.0f / width;
-    float start_width = width_increment;
-    float start_height = height_increment;
+    float start_width = width_increment / 2;
+    float start_height = height_increment / 2;
     grid = new float[width * height * 2];
     for (unsigned int i = 0; i < width; ++i) {
       for (unsigned int j = 0; j < height; ++j) {
@@ -114,11 +114,10 @@ void multipleplaneProcessor::createVertexGrid(float* grid, const unsigned int wi
         grid[2 * (i * height + j) + 1] = (float)(start_height + height_increment * j);
       }
     }
+    //LogInfo("At position " << width-1 << " " << 0 << " grid is " << grid[2 * ((width-1) * height + 0)] << " " << grid[2 * ((width-1) * height + 0) + 1]);
 }
 
 void multipleplaneProcessor::process() {
-    ImageInport* ports_pointer_list[2] = {&firstImage_, &secondImage_};
-    
     // Set up correct states
     {
         glEnable(GL_BLEND);
@@ -196,21 +195,34 @@ void multipleplaneProcessor::process() {
 
     }
 
-    for(auto inport : ports_pointer_list) {
-        // Set up the source
-        {
-            TextureUnitContainer units;
-            utilgl::bindAndSetUniforms(shader_, units, *inport->getData(), "tex0",
-                                    ImageType::ColorDepth);
-        }
-        
-        // Draw the set of vertices
-        {
-            int num_vertices = width_ * height_;
-            va_.Bind();
-            glDrawArrays(GL_POINTS, 0, num_vertices);
-        }
+    // Set up the source
+    {
+        TextureUnitContainer units;
+        utilgl::bindAndSetUniforms(shader_, units, *firstImage_.getData(), "tex0",
+                                ImageType::ColorDepth);
     }
+    
+    // Draw the set of vertices
+    {
+        int num_vertices = width_ * height_;
+        va_->Bind();
+        glDrawArrays(GL_POINTS, 0, num_vertices);
+    }
+
+    // Set up the source
+    {
+        TextureUnitContainer units;
+        utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
+                                ImageType::ColorDepth);
+    }
+    
+    // Draw the set of vertices
+    {
+        int num_vertices = width_ * height_;
+        va_->Bind();
+        glDrawArrays(GL_POINTS, 0, num_vertices);
+    }
+
 
     // Clean up
     {   
