@@ -10,8 +10,8 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multipleplaneprocessor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multiplaneraycaster.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/compositor.h
-    #${CMAKE_CURRENT_SOURCE_DIR}/include/vertexarray.h
-    #${CMAKE_CURRENT_SOURCE_DIR}/include/vertexbuffer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/vertexarray.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/vertexbuffer.h
 )
 ivw_group("Header Files" ${HEADER_FILES})
 
@@ -23,8 +23,8 @@ set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multipleplaneprocessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multiplaneraycaster.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/compositor.cpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/src/vertexarray.cpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/src/vertexbuffer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/vertexarray.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/vertexbuffer.cpp
 )
 ivw_group("Source Files" ${SOURCE_FILES})
 

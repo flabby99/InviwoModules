@@ -1,9 +1,13 @@
-#ifndef VERTEX_ARRAY_H
-#define VERTEX_ARRAY_H
+#ifndef IVW_VERTEX_ARRAY_H
+#define IVW_VERTEX_ARRAY_H
 
+#include <modules/layereddepth/layereddepthmoduledefine.h>
+#include <inviwo/core/common/inviwo.h>
 #include <modules/layereddepth/include/vertexbuffer.h>
 
 namespace buffer {
+    class IVW_MODULE_LAYEREDDEPTH_API VertexArray
+    {
     public:
         VertexArray();
         ~VertexArray();
@@ -14,6 +18,7 @@ namespace buffer {
     private:
         GLuint renderer_id_;
         std::list<std::shared_ptr<VertexBuffer>> attached_vbs;
+    };
 } //namespace buffer
 
-#endif //VERTEX_ARRAY_H
+#endif //IVW_VERTEX_ARRAY_H

@@ -1,8 +1,11 @@
-#ifndef VERTEX_BUFFER_H
-#define VERTEX_BUFFER_H
+#ifndef IVW_VERTEX_BUFFER_H
+#define IVW_VERTEX_BUFFER_H
+
+#include <modules/layereddepth/layereddepthmoduledefine.h>
+#include <inviwo/core/common/inviwo.h>
 
 namespace buffer {
-    class VertexBuffer
+    class IVW_MODULE_LAYEREDDEPTH_API VertexBuffer
     {
     public:
         VertexBuffer(const void* data, unsigned int size);
@@ -15,4 +18,4 @@ namespace buffer {
     };
 } //namespace buffer
 
-#endif //VERTEX_BUFFER_H
+#endif //IVW_VERTEX_BUFFER_H
