@@ -26,6 +26,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *********************************************************************************/
+#include "utils/sampler2d.glsl"
+layout (location = 0) in vec2 in_position;
+uniform mat4 transformMatrix;
+
+uniform sampler2D tex0Color;
+uniform sampler2D tex0Depth;
+
+out vec4 colour;
 
 void main(void) {
+    // Multiply the transform Matrix by the incoming vertex and go from there.
+    vec4 result = texture(tex0Depth, in_position)
 }

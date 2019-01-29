@@ -31,10 +31,20 @@
 #define IVW_MULTIPLEPLANEPROCESSOR_H
 
 #include <modules/layereddepth/layereddepthmoduledefine.h>
+#include <modules/layereddepth/include/vertexarray.h>
 #include <inviwo/core/common/inviwo.h>
 #include <inviwo/core/processors/processor.h>
 #include <inviwo/core/properties/ordinalproperty.h>
 #include <inviwo/core/ports/imageport.h>
+#include <modules/opengl/shader/shader.h>
+#include <inviwo/core/datastructures/camera.h>
+#include <inviwo/core/properties/cameraproperty.h>
+#include <inviwo/core/interaction/cameratrackball.h>
+#include <inviwo/core/properties/boolproperty.h>
+
+namespace buffer {
+    class VertexBuffer;
+}
 
 namespace inviwo {
 
@@ -64,13 +74,38 @@ public:
     virtual ~multipleplaneProcessor() = default;
 
     virtual void process() override;
+    virtual void initializeResources() override;
 
     virtual const ProcessorInfo getProcessorInfo() const override;
     static const ProcessorInfo processorInfo_;
 
+    void createVertexGrid(float* grid, const unsigned int width, const unsigned int height);
 private:
+    ImageInport firstImage_;
+    ImageInport secondImage_;
     ImageOutport outport_;
-    FloatVec3Property position_;
+    
+    CameraProperty camera_;
+    PerspectiveCamera new_camera_;
+    CameraTrackball trackball_;
+
+    BoolProperty shouldShear_;
+    FloatProperty regionSizeProperty_;
+    FloatProperty verticalAngleProperty_;
+    FloatProperty viewConeProperty_;
+
+    Shader shader_;
+
+    //TODO to start with, will show one image position, later should do all
+    IntProperty gridPosition_;
+    float* grid_;
+    unsigned int outportXDim_;
+    unsigned int outportYDim_;
+    unsigned int width_;
+    unsigned int height_;
+    
+    buffer::VertexArray va_;
+    std::shared_ptr<buffer::VertexBuffer> vb_;
 };
 
 }  // namespace inviwo
