@@ -118,139 +118,98 @@ void multipleplaneProcessor::createVertexGrid(std::unique_ptr<float[]> &grid, co
 
 void multipleplaneProcessor::process() {
     // Set up correct states
-    {
-        glEnable(GL_BLEND);
+    glDisable(GL_BLEND);
 
-        // glBlendFunc(Src_blend_factor, dest_blend_factor)
-        // dest is the value already in the framebuffer
-        glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+    // glBlendFunc(Src_blend_factor, dest_blend_factor)
+    // dest is the value already in the framebuffer
+    glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Set smoothing points information
+    glDisable(GL_POINT_SMOOTH);
+    glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 
-        // Set smoothing points information
-        glDisable(GL_POINT_SMOOTH);
-        glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+    // Allow the size of a point to be specified in the shader
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glClearColor(0.f, 0.f, 0.f, 0.f);
 
-        // Allow the size of a point to be specified in the shader
-        glEnable(GL_PROGRAM_POINT_SIZE);
-    }
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS); 
 
     // Initialize shaders, textures, targets and uniforms
-    {
-        shader_.activate();
-        utilgl::activateAndClearTarget(outport_);
-    }
+    shader_.activate();
+    utilgl::activateAndClearTarget(outport_);
 
     // Do preliminary calculations
-    {
-        mat4 projectionMatrix = camera_.get().getProjectionMatrix();
-        mat4 viewMatrix = camera_.get().getViewMatrix();
+    mat4 projectionMatrix = camera_.get().getProjectionMatrix();
+    mat4 viewMatrix = camera_.get().getViewMatrix();
 
-        size2_t tileSize(819, 455);
-        float viewCone = viewConeProperty_.get();
-        PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
-        float size = regionSizeProperty_.get();
-        float verticalAngle = verticalAngleProperty_.get();
-        float adjustedSize = size / tanf(glm::radians(cam->getFovy() * 0.5f));
-        float offsetX = 0;
-        float offsetY = 0;
-        
-        /*
-        for(int y = 0; y < 9; ++y)
-        {
-            for(int x = 0; x < 5; ++x)
-            {
-        */
-        int view = gridPosition_;
-        float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
-        offsetX = adjustedSize * tanf(glm::radians(angleAtView));
-        offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
-
-        mat4 currentViewMatrix = viewMatrix;
-        currentViewMatrix[3][0] -= offsetX;
-        currentViewMatrix[3][1] -= offsetY;
-        
-
-        mat4 currentProjectionMatrix = projectionMatrix;
-        if (shouldShear_.get()) {
-            currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
-            currentProjectionMatrix[2][1] -= offsetY / size;
-        }            
-        mat4 vpMatrix = currentProjectionMatrix * currentViewMatrix;
-        mat4 vpMatrixInverse = (
-            camera_.get().getInverseViewMatrix() *
-            camera_.get().getInverseProjectionMatrix()
-        );
-        mat4 transformMatrix = vpMatrix * vpMatrixInverse;
-        shader_.setUniform("transformMatrix", transformMatrix);
-        /*
-        size2_t start(x * tileSize.x, y * tileSize.y);
-        glViewport(start.x, start.y, tileSize.x, tileSize.y);
-        
-        ++view;
-        
-            }
-        }
-        glViewport(0, 0, 4096, 4096);
-        */
-
-    }
-
-    // Set up the source
-    {
-        TextureUnitContainer units;
-        utilgl::bindAndSetUniforms(shader_, units, *firstImage_.getData(), "tex0",
-                                ImageType::ColorDepth);
-    }
+    size2_t tileSize(819, 455);
+    float viewCone = viewConeProperty_.get();
+    PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
+    float size = regionSizeProperty_.get();
+    float verticalAngle = verticalAngleProperty_.get();
+    float adjustedSize = size / tanf(glm::radians(cam->getFovy() * 0.5f));
+    float offsetX = 0;
+    float offsetY = 0;
     
-    // Draw the set of vertices
-    {
-        int num_vertices = width_ * height_;
-        va_->Bind();
-        glDrawArrays(GL_POINTS, 0, num_vertices);
-    }
-
-    
-    // Set up the source
-    {
-        TextureUnitContainer units;
-        utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
-                                ImageType::ColorDepth);
-    }
-    
-    // Draw the set of vertices
-    {
-        int num_vertices = width_ * height_;
-        va_->Bind();
-        glDrawArrays(GL_POINTS, 0, num_vertices);
-    }
-    
-
     /*
-    // Try drawing the vertices with Inviwo mesh
+    for(int y = 0; y < 9; ++y)
     {
-        std::cout << "Got to start" << std::endl;
-        auto ppd=std::make_shared<SimpleMesh>();
-        ppd->setIndicesInfo(DrawType::Points, ConnectivityType::None);
-        for(unsigned int i = 0; i < width_ * height_; ++i){
-            vec3 point = vec3(grid_[2 * i], grid_[2 * i + 1], 0.f);
-            ppd->addVertex(point, point, vec4(point, 1.0f));
-            ppd->addIndex(i);
-        }
-        std::cout << "Got to mid" << std::endl;
+        for(int x = 0; x < 5; ++x)
+        {
+    */
+    int view = gridPosition_;
+    float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
+    offsetX = adjustedSize * tanf(glm::radians(angleAtView));
+    offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
-        auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
-        new_drawer.draw();
-        std::cout << "Got to end" << std::endl;
+    mat4 currentViewMatrix = viewMatrix;
+    currentViewMatrix[3][0] -= offsetX;
+    currentViewMatrix[3][1] -= offsetY;
+    
+
+    mat4 currentProjectionMatrix = projectionMatrix;
+    if (shouldShear_.get()) {
+        currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+        currentProjectionMatrix[2][1] -= offsetY / size;
+    }            
+    mat4 vpMatrix = currentProjectionMatrix * currentViewMatrix;
+    mat4 vpMatrixInverse = (
+        camera_.get().getInverseViewMatrix() *
+        camera_.get().getInverseProjectionMatrix()
+    );
+    mat4 transformMatrix = vpMatrix * vpMatrixInverse;
+    shader_.setUniform("transformMatrix", transformMatrix);
+    /*
+    size2_t start(x * tileSize.x, y * tileSize.y);
+    glViewport(start.x, start.y, tileSize.x, tileSize.y);
+    
+    ++view;
+    
+        }
     }
+    glViewport(0, 0, 4096, 4096);
     */
 
-    // Clean up
-    {   
-        utilgl::deactivateCurrentTarget();
-        shader_.deactivate();
-        
-        glDisable(GL_BLEND);
-        glEnable(GL_POINT_SMOOTH);
-    }
+    // Set up the source and draw the vertices
+    TextureUnitContainer units;
+    int num_vertices = width_ * height_;
+    va_->Bind();
+
+    utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
+                               ImageType::ColorDepth);
+    glDrawArrays(GL_POINTS, 0, num_vertices);
+
+    // Set up the second source
+    utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
+                               ImageType::ColorDepth);
+    glDrawArrays(GL_POINTS, 0, num_vertices);
+
+    utilgl::deactivateCurrentTarget();
+    shader_.deactivate();
+    
+    glDisable(GL_BLEND);
+    glEnable(GL_POINT_SMOOTH);
 }
 
 }  // namespace inviwo
