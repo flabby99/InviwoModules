@@ -68,7 +68,7 @@ namespace inviwo {
 class IVW_MODULE_LAYEREDDEPTH_API multipleplaneProcessor : public Processor {
 public:
     multipleplaneProcessor();
-    virtual ~multipleplaneProcessor() = default;
+    virtual ~multipleplaneProcessor() override;
 
     virtual void process() override;
     virtual void initializeResources() override;
@@ -76,7 +76,7 @@ public:
     virtual const ProcessorInfo getProcessorInfo() const override;
     static const ProcessorInfo processorInfo_;
 
-    void createVertexGrid(float* grid, const unsigned int width, const unsigned int height);
+    void createVertexGrid(std::unique_ptr<float[]> &grid, const unsigned int width, const unsigned int height);
 private:
     ImageInport firstImage_;
     ImageInport secondImage_;
@@ -95,7 +95,7 @@ private:
 
     //TODO to start with, will show one image position, later should do all
     IntProperty gridPosition_;
-    float* grid_;
+    std::unique_ptr<float[]> grid_;
     unsigned int outportXDim_;
     unsigned int outportYDim_;
     unsigned int width_;

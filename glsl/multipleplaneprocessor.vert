@@ -38,11 +38,12 @@ out vec4 colour;
 void main(void) {
     // Multiply the transform Matrix by the incoming vertex and go from there.
     float depth = texture(tex0Depth, in_position).r;
-    vec4 result = transformMatrix * vec4(in_position, depth, 1);
+    vec2 screen_pos = 2 * in_position - 1;
+    vec4 result = transformMatrix * vec4(screen_pos, depth, 1);
     colour = texture(tex0Color, in_position);
     // TODO calculate this based on distances and normals
-    gl_PointSize = 10.0;
-    //gl_Position = result / result.w;
-    colour = vec4(in_position, 1, 1);
-    gl_Position = vec4(in_position, 1, 1);
+    gl_PointSize = 1.0;
+    gl_Position = result / result.w;
+    //colour = vec4(in_position, 0, 1);
+    //gl_Position = vec4((2 * in_position) - 1, 1, 1);
 }
