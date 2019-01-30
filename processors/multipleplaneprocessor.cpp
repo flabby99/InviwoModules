@@ -105,8 +105,8 @@ void multipleplaneProcessor::initializeResources() {
 void multipleplaneProcessor::createVertexGrid(std::unique_ptr<float[]> &grid, const unsigned int width, const unsigned int height) {
     float width_increment = 1.0f / width;
     float height_increment = 1.0f / height;
-    float start_width = width_increment / 2;
-    float start_height = height_increment / 2;
+    float start_width = 0.5f * width_increment;
+    float start_height = 0.5f * height_increment;
     grid = std::make_unique<float[]>(width * height * 2);
     for (unsigned int i = 0; i < width; ++i) {
       for (unsigned int j = 0; j < height; ++j) {
@@ -118,7 +118,7 @@ void multipleplaneProcessor::createVertexGrid(std::unique_ptr<float[]> &grid, co
 
 void multipleplaneProcessor::process() {
     // Set up correct states
-    glDisable(GL_BLEND);
+    glEnable(GL_BLEND);
 
     // glBlendFunc(Src_blend_factor, dest_blend_factor)
     // dest is the value already in the framebuffer
@@ -132,8 +132,13 @@ void multipleplaneProcessor::process() {
     glEnable(GL_PROGRAM_POINT_SIZE);
     glClearColor(0.f, 0.f, 0.f, 0.f);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS); 
+    //glDisable(GL_DEPTH_TEST);
+    utilgl::DepthFuncState depthfunc(GL_ALWAYS);
+    //glDepthFunc(GL_LESS); 
+
+    // Set texture sampling to nearest
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Initialize shaders, textures, targets and uniforms
     shader_.activate();
@@ -196,7 +201,7 @@ void multipleplaneProcessor::process() {
     int num_vertices = width_ * height_;
     va_->Bind();
 
-    utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
+    utilgl::bindAndSetUniforms(shader_, units, *firstImage_.getData(), "tex0",
                                ImageType::ColorDepth);
     glDrawArrays(GL_POINTS, 0, num_vertices);
 

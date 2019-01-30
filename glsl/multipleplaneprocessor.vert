@@ -43,7 +43,6 @@ void main(void) {
     colour = texture(tex0Color, in_position);
     // TODO calculate this based on distances and normals
     gl_PointSize = 1.0;
-    gl_Position = result / result.w;
-    //colour = vec4(in_position, 0, 1);
-    //gl_Position = vec4((2 * in_position) - 1, 1, 1);
+    // Division by z is done in hardware
+    gl_Position = result;
 }
