@@ -52,10 +52,14 @@ void main() {
     vec4 pickingOut;
     float depthOut;
 
-    colorOut.a = color0.a + (1.0 - color0.a) * color1.a;
-    colorOut.rgb = color0.rgb + (1.0 - color0.a) * color1.rgb;
+    // colorOut.a = color0.a + (1.0 - color0.a) * color1.a;
+    // colorOut.rgb = color0.rgb + (1.0 - color0.a) * color1.rgb;
+    // colorOut = color0 * color0.a + color1 * (1 - color0.a);
+    // colorOut.rgb = color1.rbg * color.a + (1 - color0.r)
+
+    colorOut = (1.0 - color0.a) * color1 + color0;
     pickingOut = (picking1.a > 0 ? picking1 : (color1.a < 0.95 ? picking0 : vec4(0.0)));
-    depthOut = depth0;
+    depthOut = min(depth0, depth1);
 
     FragData0 = colorOut;
     PickingData = pickingOut;
