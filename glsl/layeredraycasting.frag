@@ -156,17 +156,16 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
                                        raycaster.isoValue, t, tDepth, tIncr);
         }
 #endif // INCLUDE_DVR
-        // ERT disabled for now
         // early ray termination
-        //if (result.a > ERT_THRESHOLD + 1) {
-        //    t = tEnd;
-        //} else {
+        if (result.a > ERT_THRESHOLD) {
+            t = tEnd;
+        } else {
 #if defined(ISOSURFACE_ENABLED) && defined(INCLUDE_ISOSURFACES)
             // make sure that tIncr has the correct length since drawIsoSurface will modify it
             tIncr = tEnd / samples;
 #endif // ISOSURFACE_ENABLED
             t += tIncr;
-        //}
+        }
     }
 
     // composite background if lying beyond the last volume sample, which is located at tEnd - tIncr*0.5
