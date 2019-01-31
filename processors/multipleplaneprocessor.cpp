@@ -121,9 +121,9 @@ void multipleplaneProcessor::process() {
     glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Set smoothing points information
-    glEnable(GL_POINT_SMOOTH);
-    //glDisable(GL_POINT_SMOOTH);
-    //glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+    //glEnable(GL_POINT_SMOOTH);
+    glDisable(GL_POINT_SMOOTH);
+    glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 
     // Allow the size of a point to be specified in the shader
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -134,8 +134,8 @@ void multipleplaneProcessor::process() {
     //glDepthFunc(GL_LESS); 
 
     // Set texture sampling to nearest
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     // Initialize shaders, textures, targets and uniforms
     shader_.activate();
@@ -185,7 +185,7 @@ void multipleplaneProcessor::process() {
                 }            
                 mat4 vpMatrix = currentProjectionMatrix * currentViewMatrix;
                 
-                shader_.setUniform("transformMatrix", vpMatrix * vpMatrixInverse);
+                shader_.setUniform("transformMatrix", vpMatrix);
                 size2_t start(x * tileSize.x, y * tileSize.y);
                 glViewport(start.x, start.y, tileSize.x, tileSize.y);
                 glDrawArrays(GL_POINTS, 0, num_vertices);   
