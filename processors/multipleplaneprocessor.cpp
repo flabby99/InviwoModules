@@ -47,10 +47,9 @@ const ProcessorInfo multipleplaneProcessor::getProcessorInfo() const { return pr
 
 multipleplaneProcessor::multipleplaneProcessor()
     : Processor()
-    , firstImage_("first")
-    , secondImage_("second")
+    , inport_("inport")
     , outport_("outport")
-    , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), &firstImage_)
+    , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f))
     , trackball_(&camera_)
     , shouldShear_("shouldShear", "Should Use Shear Projection", true)
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
@@ -58,17 +57,18 @@ multipleplaneProcessor::multipleplaneProcessor()
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
     , shader_("multipleplaneprocessor.vert", "multipleplaneprocessor.frag")
     , gridPosition_("position", "Grid Position", 0, 0, 44, 1)
+    , numClips_("number", "Number of clips", 2, 1, 16, 1)
     , outportXDim_(819)
     , outportYDim_(455)
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
+    addPort(inport_);
     addPort(outport_);
-    addPort(firstImage_);
-    addPort(secondImage_);
     addProperty(camera_);
     addProperty(trackball_);
     addProperty(gridPosition_);
+    addProperty(numClips_);
     addProperty(regionSizeProperty_);
     addProperty(viewConeProperty_);
     addProperty(verticalAngleProperty_);
@@ -79,8 +79,6 @@ multipleplaneProcessor::multipleplaneProcessor()
     width_ = outportXDim_;
     height_ = outportYDim_;
     outport_.setHandleResizeEvents(false);
-    (&firstImage_)->setOutportDeterminesSize(true);
-    (&secondImage_)->setOutportDeterminesSize(true);
 
     createVertexGrid(grid_, width_, height_);
     va_ = std::make_unique<VertexArray>();
@@ -173,7 +171,6 @@ void multipleplaneProcessor::process() {
     currentViewMatrix[3][0] -= offsetX;
     currentViewMatrix[3][1] -= offsetY;
     
-
     mat4 currentProjectionMatrix = projectionMatrix;
     if (shouldShear_.get()) {
         currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
@@ -202,15 +199,11 @@ void multipleplaneProcessor::process() {
     int num_vertices = width_ * height_;
     va_->Bind();
 
-    utilgl::bindAndSetUniforms(shader_, units, *firstImage_.getData(), "tex0",
-                               ImageType::ColorDepth);
-    glDrawArrays(GL_POINTS, 0, num_vertices);
-
-    // Set up the second source
-    utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
-                               ImageType::ColorDepth);
-    glDrawArrays(GL_POINTS, 0, num_vertices);
-
+    for (int i = 0; i < numClips_; ++i) {
+        utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
+                                ImageType::ColorDepth);
+        glDrawArrays(GL_POINTS, 0, num_vertices);
+    }
     utilgl::deactivateCurrentTarget();
     shader_.deactivate();
     

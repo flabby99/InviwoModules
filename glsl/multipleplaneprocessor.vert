@@ -44,8 +44,8 @@ void main(void) {
     colour = texture(tex0Color, in_position);
     //result.z = 0;
     //result.z = 1;
-    result.z = clamp(result.z, 0, 1);
-    result.w = 1;
+    //result.z = clamp(result.z, 0, 1);
+    //result.w = 1;
     // TODO calculate this based on distances and normals
     gl_PointSize = 1.0;
 

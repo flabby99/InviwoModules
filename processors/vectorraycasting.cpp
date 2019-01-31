@@ -66,7 +66,7 @@ VectorRaycaster::VectorRaycaster()
     , positionIndicator_("positionindicator", "Position Indicator")
     , toggleShading_("toggleShading", "Toggle Shading", [this](Event* e) { toggleShading(e); },
                      IvwKey::L)
-    , numClips_("num_planes", "Number of planes for clipping", 2, 0, 16, 1)
+    , numClips_("num_planes", "Number of clips", 2, 1, 16, 1)
     {
 
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });

@@ -42,6 +42,7 @@
 #include <inviwo/core/properties/cameraproperty.h>
 #include <inviwo/core/interaction/cameratrackball.h>
 #include <inviwo/core/properties/boolproperty.h>
+#include <inviwo/core/ports/datainport.h>
 
 namespace inviwo {
 
@@ -78,8 +79,7 @@ public:
 
     void createVertexGrid(std::unique_ptr<float[]> &grid, const unsigned int width, const unsigned int height);
 private:
-    ImageInport firstImage_;
-    ImageInport secondImage_;
+    DataInport<std::vector<std::shared_ptr<Image>>> inport_;
     ImageOutport outport_;
     
     CameraProperty camera_;
@@ -95,6 +95,7 @@ private:
 
     //TODO to start with, will show one image position, later should do all
     IntProperty gridPosition_;
+    IntProperty numClips_;
     std::unique_ptr<float[]> grid_;
     unsigned int outportXDim_;
     unsigned int outportYDim_;
