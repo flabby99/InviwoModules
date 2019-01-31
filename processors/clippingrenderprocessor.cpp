@@ -56,6 +56,7 @@ clippingRenderProcessor::clippingRenderProcessor()
     , trackball_(&camera_)
     , planeNormal_("normal", "Plane normal", vec3(0.0f), vec3(-100.0f), vec3(100.0f))
     , useCameraNormalAsPlane_("camNormal", "Use camera normal as plane normal", true)
+    , tempP_("planed", "Plane split point", 0.5f, -10.f, 10.f, 0.01f)
     , numClips_("num_planes", "Number of clips", 2, 1, 16, 1)
     , xDim_("xdim", "Image width", 819, 256, 819, 1)
     , yDim_("ydim", "Image height", 455, 256, 455, 1)
@@ -75,6 +76,7 @@ clippingRenderProcessor::clippingRenderProcessor()
     addProperty(numClips_);
     addProperty(xDim_);
     addProperty(yDim_);
+    addProperty(tempP_);
 
     planeNormal_.setReadOnly(useCameraNormalAsPlane_.get());
     useCameraNormalAsPlane_.onChange(
@@ -185,7 +187,7 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
 void clippingRenderProcessor::FindPlaneDistances(std::vector<float> &out_distances) {
     //TODO make this do something interesting using num clips near far planes etc
     out_distances.push_back(10.f);
-    out_distances.push_back(0.5f);
+    out_distances.push_back(tempP_);
     out_distances.push_back(-10.f);
 }
 

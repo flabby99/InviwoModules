@@ -93,8 +93,6 @@ private:
 
     Shader shader_;
 
-    //TODO to start with, will show one image position, later should do all
-    IntProperty gridPosition_;
     IntProperty numClips_;
     std::unique_ptr<float[]> grid_;
     unsigned int outportXDim_;
