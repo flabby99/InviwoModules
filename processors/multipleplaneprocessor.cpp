@@ -125,8 +125,9 @@ void multipleplaneProcessor::process() {
     glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Set smoothing points information
-    glDisable(GL_POINT_SMOOTH);
-    glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+    glEnable(GL_POINT_SMOOTH);
+    //glDisable(GL_POINT_SMOOTH);
+    //glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 
     // Allow the size of a point to be specified in the shader
     glEnable(GL_PROGRAM_POINT_SIZE);

@@ -10,6 +10,8 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multipleplaneprocessor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multiplaneraycaster.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/compositor.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/processors/vectorraycasting.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/processors/vectorimageselector.h
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexarray.h
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexbuffer.h
 )
@@ -23,6 +25,8 @@ set(SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multipleplaneprocessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/multiplaneraycaster.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/compositor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/processors/vectorraycasting.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/processors/vectorimageselector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexarray.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexbuffer.cpp
 )
@@ -41,6 +45,7 @@ set(SHADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/layeredcomposite.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/facerender.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/facerender.vert
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl/loopraycasting.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
 

@@ -50,14 +50,15 @@ const ProcessorInfo clippingRenderProcessor::getProcessorInfo() const { return p
 clippingRenderProcessor::clippingRenderProcessor()
     : Processor()
     , inport_("inport")
-    , entryPort_("entry", DataVec4UInt16::get())
-    , exitPort_("exit", DataVec4UInt16::get())
+    , entryPort_("entry")
+    , exitPort_("exit")
     , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), &inport_)
     , trackball_(&camera_)
     , planeNormal_("normal", "Plane normal", vec3(0.0f), vec3(-100.0f), vec3(100.0f))
     , useCameraNormalAsPlane_("camNormal", "Use camera normal as plane normal", true)
-    , planeDistance_("distance", "Plane distance along normal", 0.0f, -10.0f, 10.0f)
-    , planeReverseDistance_("reverse_distance", "Reverse plane distance along normal", 0.0f, -10.0f, 10.0f)
+    , numClips_("num_planes", "Number of planes for clipping", 2, 0, 16, 1)
+    , xDim_("xdim", "Image width", 819, 256, 819, 1)
+    , yDim_("ydim", "Image height", 455, 256, 455, 1)
     , shader_("clippingrenderprocessor.vert", "clippingrenderprocessor.frag")
     , faceShader_("facerender.vert", "facerender.frag")
     {
@@ -67,17 +68,20 @@ clippingRenderProcessor::clippingRenderProcessor()
     addPort(inport_);
     addPort(entryPort_, "ImagePortGroup1");
     addPort(exitPort_, "ImagePortGroup1");
-    addProperty(planeDistance_);
-    addProperty(planeReverseDistance_);
     addProperty(planeNormal_);
     addProperty(useCameraNormalAsPlane_);
     addProperty(camera_);
     addProperty(trackball_);
+    addProperty(numClips_);
+    addProperty(xDim_);
+    addProperty(yDim_);
 
     planeNormal_.setReadOnly(useCameraNormalAsPlane_.get());
-    entryPort_.addResizeEventListener(&camera_);
     useCameraNormalAsPlane_.onChange(
         [this]() { onAlignPlaneNormalToCameraNormalToggled(); });
+
+    entryImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
+    exitImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
 }
 
 clippingRenderProcessor::~clippingRenderProcessor() {
@@ -178,6 +182,14 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
     
 }
 
+void clippingRenderProcessor::FindPlaneDistances(std::vector<float> &out_distances) {
+    //TODO make this do something interesting using num clips near far planes etc
+    out_distances.push_back(10.f);
+    out_distances.push_back(0.5f);
+    out_distances.push_back(-10.f);
+}
+
+
 void clippingRenderProcessor::process() {
     if (useCameraNormalAsPlane_.get()) {           
         planeNormal_.set(glm::normalize(camera_.getLookTo() - camera_.getLookFrom()));
@@ -192,94 +204,122 @@ void clippingRenderProcessor::process() {
 
     auto planeNormal = planeNormal_.get();
     auto planeReverseNormal = vec3(-planeNormal[0], -planeNormal[1], -planeNormal[2]);
-    
-    vec4 planeEquation = vec4(planeNormal[0], planeNormal[1], planeNormal[2], planeDistance_);
-    vec4 reversePlaneEquation = vec4(planeReverseNormal[0], planeReverseNormal[1], planeReverseNormal[2], planeReverseDistance_);
 
-    shader_.activate();
-    shader_.setUniform("clipPlane", planeEquation);
-    shader_.setUniform("reversePlane", reversePlaneEquation);
-    shader_.setUniform("dataToClip", mvpMatrix);
-    shader_.setUniform("worldMatrix", worldMatrix);
-    auto drawer = MeshDrawerGL::getDrawObject(inport_.getData().get());
+    std::vector<float> distances;
+    distances.reserve(numClips_ + 1);
+    FindPlaneDistances(distances);
 
-    // Draw the front faces
-    {
-        // Turn on clipping plane distances
-        glEnable(GL_CLIP_DISTANCE0);
-        glEnable(GL_CLIP_DISTANCE1);
-        utilgl::activateAndClearTarget(entryPort_);
-        utilgl::CullFaceState cull(GL_BACK);
-        drawer.draw();    
-    }
-    
-    shader_.deactivate();
-    faceShader_.activate();
-    faceShader_.setUniform("dataToClip", mvpMatrix);
-    
+    Plane forwardPlane;
+    Plane backwardPlane;
 
-    // Draw the front facing polygon intersection
-    {
-        std::vector<vec3> points;
-        // Maximum 6 interesection points
-        points.reserve(6);
-        Plane forwardPlane = Plane(-planeDistance_.get() * planeNormal, planeNormal);
-        InviwoPlaneIntersectionPoints(points, forwardPlane);
+    exitImages_->clear();
+    entryImages_->clear();
 
-        auto ppd=std::make_shared<SimpleMesh>();
-        ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
-        for(unsigned int i = 0; i < points.size(); ++i){
-            ppd->addVertex(points[i], points[i], vec4(points[i], 1.0f));
-            ppd->addIndex(i);
+    for (int i = 0; i < numClips_; ++i) {
+        // TODO can change this to only happen when the dimensions are changed
+        auto entryImage = std::make_shared<Image>(size2_t(xDim_, yDim_),  DataVec4UInt16::get());
+        auto exitImage = std::make_shared<Image>(size2_t(xDim_, yDim_),  DataVec4UInt16::get());
+        float forwardDistance = distances[i];
+        float backwardDistance = -distances[i + 1];
+
+        vec4 planeEquation = vec4(planeNormal[0], planeNormal[1], planeNormal[2], forwardDistance);
+        vec4 reversePlaneEquation = vec4(planeReverseNormal[0], planeReverseNormal[1], planeReverseNormal[2], backwardDistance);
+
+        shader_.activate();
+        shader_.setUniform("clipPlane", planeEquation);
+        shader_.setUniform("reversePlane", reversePlaneEquation);
+        shader_.setUniform("dataToClip", mvpMatrix);
+        shader_.setUniform("worldMatrix", worldMatrix);
+
+        // Draw the front faces
+        {
+            auto drawer = MeshDrawerGL::getDrawObject(inport_.getData().get());
+            // Turn on clipping plane distances
+            glEnable(GL_CLIP_DISTANCE0);
+            glEnable(GL_CLIP_DISTANCE1);
+            utilgl::activateAndClearTarget(*entryImage, ImageType::ColorOnly);
+            utilgl::CullFaceState cull(GL_BACK);
+            drawer.draw();    
         }
+        
+        shader_.deactivate();
+        faceShader_.activate();
+        faceShader_.setUniform("dataToClip", mvpMatrix);
 
-        glDisable(GL_CLIP_DISTANCE0);
-        glDisable(GL_CLIP_DISTANCE1);
+        // Draw the front facing polygon intersection
+        {
+            std::vector<vec3> points;
+            // Maximum 6 interesection points
+            points.reserve(6);
+            
+            if (i == 0) {
+                forwardPlane = Plane(-forwardDistance * planeNormal, planeNormal);
+            }
+            else {
+                forwardPlane = backwardPlane;
+            }
+            
+            InviwoPlaneIntersectionPoints(points, forwardPlane);
 
-        auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
-        new_drawer.draw();
-    }
-    
-    faceShader_.deactivate();
-    shader_.activate();
+            auto ppd = std::make_shared<SimpleMesh>();
+            ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
+            for(unsigned int i = 0; i < points.size(); ++i){
+                ppd->addVertex(points[i], points[i], vec4(points[i], 1.0f));
+                ppd->addIndex(i);
+            }
 
-    auto drawer2 = MeshDrawerGL::getDrawObject(inport_.getData().get());
-    // Draw the back faces
-    {
-        // Turn on clipping plane distances
-        glEnable(GL_CLIP_DISTANCE0);
-        glEnable(GL_CLIP_DISTANCE1);
-        utilgl::activateAndClearTarget(exitPort_);
-        utilgl::CullFaceState cull(GL_FRONT);
-        drawer2.draw();
-    }
-    
-    shader_.deactivate();
-    faceShader_.activate();
-    // Draw the back facing polygon intersection
-    {
-        std::vector<vec3> points;
-        // Maximum 6 interesection points
-        points.reserve(6);
-        Plane backwardPlane = Plane(-planeReverseDistance_.get() * planeReverseNormal, planeReverseNormal);
-        InviwoPlaneIntersectionPoints(points, backwardPlane);
+            glDisable(GL_CLIP_DISTANCE0);
+            glDisable(GL_CLIP_DISTANCE1);
 
-        auto ppd=std::make_shared<SimpleMesh>();
-        ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
-        for(unsigned int i = 0; i < points.size(); ++i){
-            ppd->addVertex(points[i], points[i], vec4(points[i], 1.0f));
-            ppd->addIndex(i);
+            auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
+            new_drawer.draw();
         }
+        
+        entryImages_->push_back(entryImage);
+        faceShader_.deactivate();
+        shader_.activate();
 
-        glDisable(GL_CLIP_DISTANCE0);
-        glDisable(GL_CLIP_DISTANCE1);
+        auto drawer2 = MeshDrawerGL::getDrawObject(inport_.getData().get());
+        // Draw the back faces
+        {
+            auto drawer = MeshDrawerGL::getDrawObject(inport_.getData().get());
+            // Turn on clipping plane distances
+            glEnable(GL_CLIP_DISTANCE0);
+            glEnable(GL_CLIP_DISTANCE1);
+            utilgl::activateAndClearTarget(*exitImage, ImageType::ColorOnly);
+            utilgl::CullFaceState cull(GL_FRONT);
+            drawer2.draw();
+        }
+        
+        shader_.deactivate();
+        faceShader_.activate();
+        // Draw the back facing polygon intersection
+        {
+            std::vector<vec3> points;
+            // Maximum 6 interesection points
+            points.reserve(6);
+            backwardPlane = Plane(-backwardDistance * planeReverseNormal, planeReverseNormal);
+            InviwoPlaneIntersectionPoints(points, backwardPlane);
 
-        auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
-        new_drawer.draw();
+            auto ppd=std::make_shared<SimpleMesh>();
+            ppd->setIndicesInfo(DrawType::Triangles, ConnectivityType::Fan);
+            for(unsigned int i = 0; i < points.size(); ++i){
+                ppd->addVertex(points[i], points[i], vec4(points[i], 1.0f));
+                ppd->addIndex(i);
+            }
+
+            glDisable(GL_CLIP_DISTANCE0);
+            glDisable(GL_CLIP_DISTANCE1);
+
+            auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
+            new_drawer.draw();
+        }
+        exitImages_->push_back(exitImage);
+        utilgl::deactivateCurrentTarget();
+        faceShader_.deactivate();
     }
-    
-    utilgl::deactivateCurrentTarget();
-    faceShader_.deactivate();
+    entryPort_.setData(entryImages_);
+    exitPort_.setData(exitImages_);
 }
 
 }  // namespace inviwo

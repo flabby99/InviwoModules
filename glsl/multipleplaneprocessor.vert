@@ -34,6 +34,7 @@ uniform sampler2D tex0Color;
 uniform sampler2D tex0Depth;
 
 out vec4 colour;
+out float not_valid;
 
 void main(void) {
     // Multiply the transform Matrix by the incoming vertex and go from there.
@@ -41,8 +42,14 @@ void main(void) {
     vec2 screen_pos = 2 * in_position - 1;
     vec4 result = transformMatrix * vec4(screen_pos, depth, 1);
     colour = texture(tex0Color, in_position);
+    //result.z = 0;
+    //result.z = 1;
+    result.z = clamp(result.z, 0, 1);
+    result.w = 1;
     // TODO calculate this based on distances and normals
     gl_PointSize = 1.0;
-    // Division by z is done in hardware
+
+    // Division by w is done in hardware
     gl_Position = result;
+    not_valid = float(result.w < 0);
 }

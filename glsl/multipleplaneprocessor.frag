@@ -28,7 +28,15 @@
  *********************************************************************************/
 
 in vec4 colour;
+in float not_valid;
 
+// TODO check if this ever shows up, don't think the splat will ever go behind the camera.
 void main(void) {
-    FragData0 = colour;
+    if (bool(not_valid)) {
+        //discard;
+        FragData0 = vec4(1);
+    }
+    else {
+        FragData0 = colour;
+    }
 }

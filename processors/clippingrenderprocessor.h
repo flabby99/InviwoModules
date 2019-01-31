@@ -37,12 +37,14 @@
 #include <inviwo/core/properties/ordinalproperty.h>
 #include <inviwo/core/properties/boolproperty.h>
 #include <inviwo/core/ports/imageport.h>
+#include <inviwo/core/ports/dataoutport.h>
 #include <modules/opengl/shader/shader.h>
 #include <inviwo/core/datastructures/camera.h>
 #include <inviwo/core/properties/cameraproperty.h>
 #include <inviwo/core/interaction/cameratrackball.h>
 #include <vector>
 #include <inviwo/core/datastructures/geometry/plane.h>
+#include <inviwo/core/datastructures/image/image.h>
 
 namespace inviwo {
 
@@ -81,19 +83,27 @@ public:
 private:
     void onAlignPlaneNormalToCameraNormalToggled();
     void InviwoPlaneIntersectionPoints(std::vector<vec3> &out_points, const Plane& worldSpacePlane);
+    void FindPlaneDistances(std::vector<float> &out_distances);
+
     MeshInport inport_;
-    ImageOutport entryPort_;
-    ImageOutport exitPort_;
+    DataOutport<std::vector<std::shared_ptr<Image>>> entryPort_;
+    DataOutport<std::vector<std::shared_ptr<Image>>> exitPort_;
 
     CameraProperty camera_;
     CameraTrackball trackball_;
 
     FloatVec3Property planeNormal_;
     BoolProperty useCameraNormalAsPlane_;
-    FloatProperty planeDistance_;
-    FloatProperty planeReverseDistance_;
+
+    IntProperty numClips_;
+    IntProperty xDim_;
+    IntProperty yDim_;
+
     Shader shader_;
     Shader faceShader_;
+
+    std::shared_ptr<std::vector<std::shared_ptr<Image>>> entryImages_;
+    std::shared_ptr<std::vector<std::shared_ptr<Image>>> exitImages_;
 };
 
 }  // namespace inviwo
