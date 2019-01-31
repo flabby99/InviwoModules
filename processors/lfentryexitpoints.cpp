@@ -96,9 +96,6 @@ void lfentryexitpoints::drawViews()
 
     int view = 0;
     size2_t tileSize(819, 455);
-    float spacing = 0.1f;
-    //45 is the number of views
-    float width = spacing * 45.0f;
     float viewCone = viewConeProperty_.get();
     PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
     float size = regionSizeProperty_.get();
