@@ -44,17 +44,16 @@ void main(void) {
 
     // depth comes in 0, 1 convert it to -1 1
     depth = 2 * depth - 1;
-    vec4 screen_pos = vec4(2 * in_position - 1, 0.8, 1);
+    // Depth is generally very close to 1
+    vec4 screen_pos = vec4(2 * in_position - 1, depth, 1);
     vec4 world_pos = inverseMatrix * screen_pos;
     //vec4 result = world_pos;
     world_pos = world_pos / world_pos.w;
     vec4 result = transformMatrix * world_pos;
     colour = texture(tex0Color, in_position);
-    //colour = result;
+    //colour = vec4(result.z, 0, 0, 1);
     //colour.a = 1.0 - pow(1.0 - colour.a, 0.007 * 150);
-    //result.z = 0;
-    //result.z = 1;
-    //result.z = clamp(result.z, 0, 1);
+    //result.z = clamp(result.z, -1, 1);
     //result.w = 1;
     // TODO calculate this based on distances and normals
     gl_PointSize = 1.0;
