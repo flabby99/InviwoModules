@@ -163,6 +163,13 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
         }
 #endif // INCLUDE_DVR
 
+        //early depth output
+        if (result.a > firstDepthThreshold && tDepth == -1.0) {
+            tDepth = t;
+        }
+        else if (useTwoDepths && result.a > secondDepthThreshold && mDepth == -1.0) {
+            mDepth = t;
+        }
         // early ray termination
         if (result.a > ERT_THRESHOLD) {
             t = tEnd;
@@ -172,13 +179,6 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
             tIncr = tEnd / samples;
 #endif // ISOSURFACE_ENABLED
             t += tIncr;
-        }
-        //early depth output
-        if (result.a > firstDepthThreshold && tDepth == -1.0) {
-            tDepth = t;
-        }
-        else if (useTwoDepths && result.a > secondDepthThreshold && mDepth == -1.0) {
-            mDepth = t;
         }
     }
 
