@@ -32,12 +32,15 @@ lfentryexitpoints::lfentryexitpoints()
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
     , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
+    , useIndividualView_("indvidual_view", "Should show only one view", false)
     , viewProp_("view", "View number", 0, 0, 44, 1)
     , entryExitShader_("lfentryexitpoints.vert", "lfentryexitpoints.frag") {
 
     addPort(inport_);
     addPort(entryPort_, "ImagePortGroup1");
     addPort(exitPort_, "ImagePortGroup1");
+    addProperty(useIndividualView_);
+    addProperty(viewProp_);
     addProperty(regionSizeProperty_);
     addProperty(viewConeProperty_);
     addProperty(verticalAngleProperty_);
@@ -45,14 +48,34 @@ lfentryexitpoints::lfentryexitpoints()
     addProperty(shouldShear_);
     addProperty(camera_);
     addProperty(trackball_);
-    addProperty(viewProp_);
-    entryPort_.addResizeEventListener(&camera_);
+
+    // Change this if default state is to show only one view
+    viewProp_.setVisible(false);
+    entryPort_.setDimensions(size2_t(4096, 4096));
+    exitPort_.setDimensions(size2_t(4096, 4096));
+
+    entryPort_.setHandleResizeEvents(false);
+    exitPort_.setHandleResizeEvents(false);
+
+    useIndividualView_.onChange(
+        [this]() {onViewToggled(); });
+}
+
+void lfentryexitpoints::onViewToggled() {
+    if(useIndividualView_.get()) {
+        entryPort_.setDimensions(size2_t(819, 455));
+        exitPort_.setDimensions(size2_t(819, 455));
+    }
+    else {
+        entryPort_.setDimensions(size2_t(4096, 4096));
+        exitPort_.setDimensions(size2_t(4096, 4096));
+    }
+    viewProp_.setVisible(useIndividualView_.get());
 }
 
 void lfentryexitpoints::process() {
     // outport_.setData(myImage);
-    entryPort_.getEditableData().get()->setDimensions(size2_t(819, 455));
-    exitPort_.getEditableData().get()->setDimensions(size2_t(819, 455));
+    
     {
         utilgl::DepthFuncState depthfunc(GL_ALWAYS);
         utilgl::PointSizeState pointsize(1.0f);
@@ -65,7 +88,7 @@ void lfentryexitpoints::process() {
         {
             // generate exit points
             utilgl::activateAndClearTarget(
-                *exitPort_.getEditableData().get(), 
+                exitPort_, 
                 ImageType::ColorDepth
             );
             utilgl::CullFaceState cull(GL_FRONT);
@@ -76,7 +99,7 @@ void lfentryexitpoints::process() {
         {
             // generate entry points
             utilgl::activateAndClearTarget(
-                *entryPort_.getEditableData().get(), 
+                entryPort_, 
                 ImageType::ColorDepth
             );
 
@@ -106,34 +129,58 @@ void lfentryexitpoints::drawViews()
     float offsetX = 0;
     float offsetY = 0;
     
-    // // for(int y = 0; y < 9; ++y)
-    // {
-    //     for(int x = 0; x < 5; ++x)
-    //     {
-    float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
-    offsetX = adjustedSize * tanf(glm::radians(angleAtView));
-    offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
+    if(useIndividualView_.get()) {
+        float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
+        offsetX = adjustedSize * tanf(glm::radians(angleAtView));
+        offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
-    mat4 currentViewMatrix = viewMatrix;
-    currentViewMatrix[3][0] -= offsetX;
-    currentViewMatrix[3][1] -= offsetY;
-    
+        mat4 currentViewMatrix = viewMatrix;
+        currentViewMatrix[3][0] -= offsetX;
+        currentViewMatrix[3][1] -= offsetY;
+        
 
-    mat4 currentProjectionMatrix = projectionMatrix;
-    if (shouldShear_.get()) {
-        currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
-        currentProjectionMatrix[2][1] -= offsetY / size;
-    }            
-    mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
-    entryExitShader_.setUniform("dataToClip", mvpMatrix);
-    // size2_t start(x * tileSize.x, y * tileSize.y);
-    // glViewport(start.x, start.y, tileSize.x, tileSize.y);
-    drawer.draw();
-    //         ++view;
-    //     }
-    // }
-    // glViewport(0, 0, 4096, 4096);
-    
+        mat4 currentProjectionMatrix = projectionMatrix;
+        if (shouldShear_.get()) {
+            currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+            currentProjectionMatrix[2][1] -= offsetY / size;
+        }            
+        mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
+        entryExitShader_.setUniform("dataToClip", mvpMatrix);
+        // size2_t start(x * tileSize.x, y * tileSize.y);
+        // glViewport(start.x, start.y, tileSize.x, tileSize.y);
+        drawer.draw();
+    }
+    else {
+        view = 0;
+        for(int y = 0; y < 9; ++y)
+        {
+            for(int x = 0; x < 5; ++x)
+            {
+                float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
+                offsetX = adjustedSize * tanf(glm::radians(angleAtView));
+                offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
+
+                mat4 currentViewMatrix = viewMatrix;
+                currentViewMatrix[3][0] -= offsetX;
+                currentViewMatrix[3][1] -= offsetY;
+                
+
+                mat4 currentProjectionMatrix = projectionMatrix;
+                if (shouldShear_.get()) {
+                    currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+                    currentProjectionMatrix[2][1] -= offsetY / size;
+                }            
+                mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
+                entryExitShader_.setUniform("dataToClip", mvpMatrix);
+                size2_t start(x * tileSize.x, y * tileSize.y);
+                glViewport(start.x, start.y, tileSize.x, tileSize.y);
+                drawer.draw();
+                ++view;
+            }
+        }
+        
+        glViewport(0, 0, 4096, 4096);
+    }
 }
 
 }  // namespace inviwo

@@ -76,6 +76,7 @@ public:
     void drawViews();
 
 private:
+    void onViewToggled();
     MeshInport inport_;
     ImageOutport entryPort_;
     ImageOutport exitPort_;
@@ -87,6 +88,8 @@ private:
     FloatProperty regionSizeProperty_;
     FloatProperty verticalAngleProperty_;
     FloatProperty viewConeProperty_;
+
+    BoolProperty useIndividualView_;
     IntProperty viewProp_;
 
     Shader entryExitShader_;
