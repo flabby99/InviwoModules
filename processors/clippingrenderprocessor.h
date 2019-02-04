@@ -98,7 +98,6 @@ private:
     IntProperty numClips_;
     IntProperty xDim_;
     IntProperty yDim_;
-    FloatProperty tempP_;
 
     Shader shader_;
     Shader faceShader_;

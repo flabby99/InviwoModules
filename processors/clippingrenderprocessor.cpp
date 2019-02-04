@@ -59,7 +59,6 @@ clippingRenderProcessor::clippingRenderProcessor()
     , numClips_("num_planes", "Number of clips", 2, 1, 16, 1)
     , xDim_("xdim", "Image width", 819, 256, 819, 1)
     , yDim_("ydim", "Image height", 455, 256, 455, 1)
-    , tempP_("planed", "Plane split point", 0.5f, -10.f, 10.f, 0.01f)
     , shader_("clippingrenderprocessor.vert", "clippingrenderprocessor.frag")
     , faceShader_("facerender.vert", "facerender.frag")
     {
@@ -76,7 +75,6 @@ clippingRenderProcessor::clippingRenderProcessor()
     addProperty(numClips_);
     addProperty(xDim_);
     addProperty(yDim_);
-    addProperty(tempP_);
 
     planeNormal_.setReadOnly(useCameraNormalAsPlane_.get());
     useCameraNormalAsPlane_.onChange(
@@ -185,10 +183,82 @@ void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &o
 }
 
 void clippingRenderProcessor::FindPlaneDistances(std::vector<float> &out_distances) {
-    //TODO make this do something interesting using num clips near far planes etc
-    out_distances.push_back(10.f);
-    out_distances.push_back(tempP_);
-    out_distances.push_back(-10.f);
+    // Calculate new plane point by finding the closest geometry point to the camera
+    float nearFarDistance = 0.f;
+    float nearDistance = 0.f;
+    float farDistance = 0.f;
+
+    auto geom = inport_.getData();
+
+    auto it = util::find_if(geom->getBuffers(), [](const auto& buf) {
+        return buf.first.type == BufferType::PositionAttrib;
+    });
+    if (it == geom->getBuffers().end()) {
+        LogError("Unsupported mesh, no buffers with the Position Attribute found");
+        return;
+    }
+
+    auto& camera = camera_.get();
+    auto direction = glm::normalize(camera.getDirection());
+    auto nearPos = camera.getLookFrom() + camera.getNearPlaneDist() * direction;
+    // Transform coordinates to data space
+    auto worldToData = geom->getCoordinateTransformer().getWorldToDataMatrix();
+    auto worldToDataNormal = glm::transpose(glm::inverse(worldToData));
+    auto dataSpacePos = vec3(worldToData * vec4(nearPos, 1.0));
+    auto dataSpaceNormal = glm::normalize(vec3(worldToDataNormal * vec4(direction, 0.0)));
+    // Plane start/end position based on distance to camera near plane
+    Plane nearPlane(dataSpacePos, dataSpaceNormal);
+
+    // Align clipping plane to camera and make sure it starts and ends on the mesh boundaries.
+    // Start point will be on the camera near plane if it is inside the mesh.
+    const auto ram = it->second->getRepresentation<BufferRAM>();
+    if (ram && ram->getDataFormat()->getComponents() == 3) {
+        ram->dispatch<void, dispatching::filter::Float3s>([&](auto pb) -> void {
+            const auto& vertexList = pb->getDataContainer();
+            // Get closest and furthest vertex with respect to the camera near plane
+            auto minMaxVertices =
+                std::minmax_element(std::begin(vertexList), std::end(vertexList),
+                                    [&nearPlane](const auto& a, const auto& b) {
+                                        // Use max(0, dist) to make sure we do not consider vertices
+                                        // behind plane
+                                        return std::max(0.f, nearPlane.distance(a)) <
+                                               std::max(0.f, nearPlane.distance(b));
+                                    });
+            auto minDist = nearPlane.distance(*minMaxVertices.first);
+            auto maxDist = nearPlane.distance(*minMaxVertices.second);
+
+            auto closestVertex = minDist * nearPlane.getNormal() + nearPlane.getPoint();
+            auto farVertex = maxDist * nearPlane.getNormal() + nearPlane.getPoint();
+            auto closestWorldSpacePos = vec3(
+                geom->getCoordinateTransformer().getDataToWorldMatrix() * vec4(closestVertex, 1.f));
+            auto farWorldSpacePos = vec3(geom->getCoordinateTransformer().getDataToWorldMatrix() *
+                                         vec4(farVertex, 1.f));
+            // nearDistance = glm::distance(camera.getLookFrom(), closestWorldSpacePos);
+            nearFarDistance = glm::distance(farWorldSpacePos, closestWorldSpacePos);
+            nearDistance = glm::distance(closestWorldSpacePos, glm::vec3(0.f));
+            farDistance = glm::distance(farWorldSpacePos, glm::vec3(0.f));
+        });
+
+    } else {
+        LogError("Unsupported mesh, only 3D meshes supported");
+    }
+
+    float startDistance = nearDistance;
+    //float endDistance = nearDistance + nearFarDistance;
+    float endDistance = -farDistance;
+
+    // Start at the near plane
+    out_distances.push_back(startDistance);
+
+    // Split up the in-between
+    float split_factor = numClips_;
+    for(int i = 1; i < numClips_; ++i) {
+        float split = i * (nearDistance + farDistance) / split_factor;
+        out_distances.push_back(startDistance - split);
+    }
+
+    // End at the far plane
+    out_distances.push_back(endDistance);
 }
 
 
@@ -210,6 +280,12 @@ void clippingRenderProcessor::process() {
     std::vector<float> distances;
     distances.reserve(numClips_ + 1);
     FindPlaneDistances(distances);
+
+    // TODO remove temp printing
+    LogInfo("Printing distances:");
+    for (float distance : distances ) {
+        LogInfo(distance);
+    }
 
     Plane forwardPlane;
     Plane backwardPlane;
