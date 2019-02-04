@@ -87,6 +87,7 @@ private:
     FloatProperty regionSizeProperty_;
     FloatProperty verticalAngleProperty_;
     FloatProperty viewConeProperty_;
+    IntProperty viewProp_;
 
     Shader entryExitShader_;
 };
