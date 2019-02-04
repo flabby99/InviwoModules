@@ -28,8 +28,7 @@
  *********************************************************************************/
 #include "utils/sampler2d.glsl"
 layout (location = 0) in vec2 in_position;
-uniform mat4 transformMatrix;
-uniform mat4 inverseMatrix;
+uniform mat4 transformMatrix = mat4(1);
 
 uniform sampler2D tex0Color;
 uniform sampler2D tex0Depth;
@@ -41,24 +40,17 @@ out float not_valid;
 void main(void) {
     // Multiply the transform Matrix by the incoming vertex and go from there.
     float depth = texture(tex0Depth, in_position).r;
-
     // depth comes in 0, 1 convert it to -1 1
     depth = 2 * depth - 1;
-    // Depth is generally very close to 1
+
     vec4 screen_pos = vec4(2 * in_position - 1, depth, 1);
-    vec4 world_pos = inverseMatrix * screen_pos;
-    //vec4 result = world_pos;
-    world_pos = world_pos / world_pos.w;
-    vec4 result = transformMatrix * world_pos;
+    vec4 world_pos = transformMatrix * screen_pos;
     colour = texture(tex0Color, in_position);
-    //colour = vec4(result.z, 0, 0, 1);
-    //colour.a = 1.0 - pow(1.0 - colour.a, 0.007 * 150);
-    //result.z = clamp(result.z, -1, 1);
-    //result.w = 1;
+    
     // TODO calculate this based on distances and normals
     gl_PointSize = 1.0;
 
     // Division by w is done in hardware
-    gl_Position = result;
-    not_valid = float(result.w < 0);
+    gl_Position = world_pos;
+    not_valid = float(world_pos.w < 0);
 }

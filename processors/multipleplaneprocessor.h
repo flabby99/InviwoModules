@@ -79,6 +79,7 @@ public:
 
     void createVertexGrid(std::unique_ptr<float[]> &grid, const unsigned int width, const unsigned int height);
 private:
+    void onViewToggled();
     DataInport<std::vector<std::shared_ptr<Image>>> inport_;
     ImageOutport outport_;
     
@@ -100,6 +101,9 @@ private:
     unsigned int width_;
     unsigned int height_;
     
+    BoolProperty useIndividualView_;
+    IntProperty viewProp_;
+
     std::unique_ptr<VertexArray> va_;
     std::shared_ptr<VertexBuffer> vb_;
 };
