@@ -56,10 +56,10 @@ clippingRenderProcessor::clippingRenderProcessor()
     , trackball_(&camera_)
     , planeNormal_("normal", "Plane normal", vec3(0.0f), vec3(-100.0f), vec3(100.0f))
     , useCameraNormalAsPlane_("camNormal", "Use camera normal as plane normal", true)
-    , tempP_("planed", "Plane split point", 0.5f, -10.f, 10.f, 0.01f)
     , numClips_("num_planes", "Number of clips", 2, 1, 16, 1)
     , xDim_("xdim", "Image width", 819, 256, 819, 1)
     , yDim_("ydim", "Image height", 455, 256, 455, 1)
+    , tempP_("planed", "Plane split point", 0.5f, -10.f, 10.f, 0.01f)
     , shader_("clippingrenderprocessor.vert", "clippingrenderprocessor.frag")
     , faceShader_("facerender.vert", "facerender.frag")
     {
@@ -239,7 +239,7 @@ void clippingRenderProcessor::process() {
             // Turn on clipping plane distances
             glEnable(GL_CLIP_DISTANCE0);
             glEnable(GL_CLIP_DISTANCE1);
-            utilgl::activateAndClearTarget(*entryImage, ImageType::ColorOnly);
+            utilgl::activateAndClearTarget(*entryImage, ImageType::ColorDepth);
             utilgl::CullFaceState cull(GL_BACK);
             drawer.draw();    
         }
@@ -288,7 +288,7 @@ void clippingRenderProcessor::process() {
             // Turn on clipping plane distances
             glEnable(GL_CLIP_DISTANCE0);
             glEnable(GL_CLIP_DISTANCE1);
-            utilgl::activateAndClearTarget(*exitImage, ImageType::ColorOnly);
+            utilgl::activateAndClearTarget(*exitImage, ImageType::ColorDepth);
             utilgl::CullFaceState cull(GL_FRONT);
             drawer2.draw();
         }

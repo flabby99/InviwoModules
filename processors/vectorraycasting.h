@@ -80,6 +80,10 @@ namespace inviwo {
  *   * __Toggle Shading__    boolean flag for enabling/disabling shading
  *
  */
+
+// TODO could considering combining the depth method in this
+// With formerly used depth heuristics.
+
 class IVW_MODULE_LAYEREDDEPTH_API VectorRaycaster : public Processor {
 public:
     VectorRaycaster();
