@@ -38,6 +38,7 @@ out vec4 colour;
 void main(void) {
     // Multiply the transform Matrix by the incoming vertex and go from there.
     float depth = texture(tex0Depth, in_position).r;
+    depth = 2 * depth - 1;
     vec2 screen_pos = 2 * in_position - 1;
     vec4 result = transformMatrix * vec4(screen_pos, depth, 1);
     colour = texture(tex0Color, in_position);
