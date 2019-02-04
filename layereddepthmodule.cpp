@@ -35,6 +35,7 @@
 #include <modules/opengl/shader/shadermanager.h>
 #include <modules/layereddepth/processors/compositor.h>
 #include <modules/layereddepth/processors/vectorimageselector.h>
+#include <modules/layereddepth/processors/fixedimagesize.h>
 
 namespace inviwo {
 
@@ -45,6 +46,7 @@ layereddepthModule::layereddepthModule(InviwoApplication* app) : InviwoModule(ap
     registerProcessor<LayeredCompositeProcessor>();
     registerProcessor<VectorRaycaster>();
     registerProcessor<imageVectorSelector>();
+    registerProcessor<fixedimagesize>();
     // Add a directory to the search path of the Shadermanager
     ShaderManager::getPtr()->addShaderSearchPath(getPath(ModulePath::GLSL));
 
