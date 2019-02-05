@@ -9,3 +9,4 @@
 - Review all of my code TODOs.
 - Don't keep initialising new images, only do it on resize.
 - Remove printing of plane distances once I am confident about their correctness.
+- Don't splat the central view once confident on the correctness.

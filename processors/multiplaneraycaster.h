@@ -100,6 +100,7 @@ protected:
 
     void initialiseImageData();
 
+    Shader firstShader_;
     Shader shader_;
     VolumeInport volumePort_;
     std::shared_ptr<const Volume> loadedVolume_;
@@ -119,6 +120,8 @@ protected:
 
     FloatProperty rayLengthBlock_;
     IntProperty numClips_;
+    IntProperty xDim_;
+    IntProperty yDim_;
 
     std::shared_ptr<std::vector<std::shared_ptr<Image>>> outImages_;
 };

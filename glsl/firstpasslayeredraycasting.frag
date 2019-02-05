@@ -48,9 +48,7 @@ uniform sampler2D transferFunction;
 uniform ImageParameters entryParameters;
 uniform sampler2D entryColor;
 uniform sampler2D entryDepth;
-
-uniform sampler2D positionColor;
-uniform sampler2D positionPicking;
+uniform sampler2D entryPicking;
 
 uniform ImageParameters exitParameters;
 uniform sampler2D exitColor;
@@ -82,10 +80,8 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     vec4 result = vec4(0.0);
     vec3 rayDirection = exitPoint - entryPoint;
     float tEnd = length(rayDirection);
-    bool clipped = false;
     if (tEnd > rayLengthBlock) {
         tEnd = tEnd / rayLengthScale;
-        clipped = true;
     }
     float tIncr = min(
         tEnd, tEnd / (raycaster.samplingRate * length(rayDirection * volumeParameters.dimensions)));
@@ -188,10 +184,6 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
     gl_FragDepth = min(backgroundDepth, tDepth);
 
-    // TODO this does not work - if want to use ray block need to work on this
-    if (!clipped) {
-        samplePos = exitPoint;
-    }
     pos = vec4(samplePos, 1.0);
     return result;
 }
@@ -199,10 +191,9 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 void main() {
     // TODO will be faster if I explicity remove this tex sample for later iters
     vec2 texCoords = gl_FragCoord.xy * entryParameters.reciprocalDimensions;
-    vec3 entryPoint = texture(positionPicking, texCoords).rgb;
+    vec3 entryPoint = texture(entryColor, texCoords).rgb;
     vec3 exitPoint = texture(exitColor, texCoords).rgb;
     vec4 pos;
-
     vec4 color = vec4(0);
 
     float backgroundDepth = 1;
@@ -217,7 +208,6 @@ void main() {
     }
 #endif // BACKGROUND_AVAILABLE
     bool not_close_to_zero;
-    //not_close_to_zero = any(greaterThan(abs(entryPoint - exitPoint), vec3(0.01)));
     not_close_to_zero = (entryPoint != exitPoint);
     if (not_close_to_zero) {
         color = rayTraversal(entryPoint, exitPoint, texCoords, backgroundDepth, pos);

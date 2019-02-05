@@ -48,6 +48,7 @@ set(SHADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/facerender.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/facerender.vert
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/loopraycasting.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl/firstpasslayeredraycasting.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
 
