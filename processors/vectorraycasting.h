@@ -101,6 +101,8 @@ protected:
 
     void toggleShading(Event*);
 
+    void initialiseImageData();
+
     Shader shader_;
     VolumeInport volumePort_;
     std::shared_ptr<const Volume> loadedVolume_;
@@ -119,6 +121,8 @@ protected:
     EventProperty toggleShading_;
 
     IntProperty numClips_;
+    IntProperty xDim_;
+    IntProperty yDim_;
 
     std::shared_ptr<std::vector<std::shared_ptr<Image>>> outImages_;
 };

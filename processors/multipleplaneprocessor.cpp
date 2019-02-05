@@ -61,6 +61,8 @@ multipleplaneProcessor::multipleplaneProcessor()
     , outportYDim_(4096)
     , useIndividualView_("indvidual_view", "Should show only one view", false)
     , viewProp_("view", "View number", 0, 0, 44, 1)
+    , xDim_("xdim", "Image width", 819, 256, 1024, 1)
+    , yDim_("ydim", "Image height", 455, 256, 512, 1)
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
@@ -69,6 +71,8 @@ multipleplaneProcessor::multipleplaneProcessor()
     addProperty(useIndividualView_);
     addProperty(viewProp_);
     addProperty(numClips_);
+    addProperty(xDim_);
+    addProperty(yDim_);
     addProperty(regionSizeProperty_);
     addProperty(viewConeProperty_);
     addProperty(verticalAngleProperty_);
@@ -84,8 +88,8 @@ multipleplaneProcessor::multipleplaneProcessor()
 
 void multipleplaneProcessor::onViewToggled() {
     if(useIndividualView_.get()) {
-        outportXDim_ = 819;
-        outportYDim_ = 455;
+        outportXDim_ = xDim_;
+        outportYDim_ = yDim_;
         width_ = outportXDim_;
         height_ = outportYDim_;
     }

@@ -67,6 +67,8 @@ VectorRaycaster::VectorRaycaster()
     , toggleShading_("toggleShading", "Toggle Shading", [this](Event* e) { toggleShading(e); },
                      IvwKey::L)
     , numClips_("num_planes", "Number of clips", 2, 1, 16, 1)
+    , xDim_("xdim", "Image width", 819, 256, 1024, 1)
+    , yDim_("ydim", "Image height", 455, 256, 512, 1)
     {
 
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
@@ -124,11 +126,32 @@ VectorRaycaster::VectorRaycaster()
     addProperty(toggleShading_);
 
     addProperty(numClips_);
+    addProperty(xDim_);
+    addProperty(yDim_);
+
+    numClips_.onChange(
+        [this]() {initialiseImageData(); });
+    xDim_.onChange(
+        [this]() {initialiseImageData(); });
+    yDim_.onChange(
+        [this]() {initialiseImageData(); });
 
     outImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
+    initialiseImageData();
 }
 
 const ProcessorInfo VectorRaycaster::getProcessorInfo() const { return processorInfo_; }
+
+void VectorRaycaster::initialiseImageData() {
+    outImages_->clear();
+    outImages_->reserve(numClips_.get());
+    size2_t dim = size2_t(xDim_, yDim_);
+    auto type = DataVec4UInt8::get();
+    for(int i = 0; i < numClips_; ++i){
+        auto outImage = std::make_shared<Image>(dim, type);
+        outImages_->push_back(outImage);
+    }
+}
 
 void VectorRaycaster::initializeResources() {
     utilgl::addDefines(shader_, raycasting_, isotfComposite_, camera_, lighting_,
@@ -161,8 +184,6 @@ void VectorRaycaster::process() {
         LogWarn("No GL rep !!!");
         return;
     }
-    outImages_->clear();
-
     shader_.activate();
     TextureUnitContainer units;
     utilgl::bindAndSetUniforms(shader_, units, *loadedVolume_, "volume");
@@ -175,9 +196,7 @@ void VectorRaycaster::process() {
 
     for (int i = 0; i < numClips_; ++i) {
         TextureUnitContainer moreUnits;
-        size2_t dim = (*entryPort_.getData())[i]->getDimensions();
-        auto outImage = std::make_shared<Image>(dim);
-        utilgl::activateAndClearTarget(*outImage, ImageType::ColorDepthPicking);
+        utilgl::activateAndClearTarget(*outImages_->at(i), ImageType::ColorDepthPicking);
 
         utilgl::bindAndSetUniforms(
             shader_, moreUnits, 
@@ -188,7 +207,6 @@ void VectorRaycaster::process() {
             *exitPort_.getData()->at(i), "exit", ImageType::ColorDepth);
 
         utilgl::singleDrawImagePlaneRect();
-        outImages_->push_back(outImage);    
     }
     outport_.setData(outImages_);
     shader_.deactivate();

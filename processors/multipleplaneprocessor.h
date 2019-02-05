@@ -103,6 +103,8 @@ private:
     
     BoolProperty useIndividualView_;
     IntProperty viewProp_;
+    IntProperty xDim_;
+    IntProperty yDim_;
 
     std::unique_ptr<VertexArray> va_;
     std::shared_ptr<VertexBuffer> vb_;
