@@ -47,41 +47,59 @@ const ProcessorInfo multipleplaneProcessor::getProcessorInfo() const { return pr
 
 multipleplaneProcessor::multipleplaneProcessor()
     : Processor()
-    , firstImage_("first")
-    , secondImage_("second")
+    , inport_("inport")
     , outport_("outport")
-    , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), &firstImage_)
+    , camera_("camera", "Camera", vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f))
     , trackball_(&camera_)
     , shouldShear_("shouldShear", "Should Use Shear Projection", true)
     , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
     , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
     , shader_("multipleplaneprocessor.vert", "multipleplaneprocessor.frag")
-    , gridPosition_("position", "Grid Position", 0, 0, 44, 1)
-    , outportXDim_(819)
-    , outportYDim_(455)
+    , numClips_("number", "Number of clips", 2, 1, 16, 1)
+    , outportXDim_(4096)
+    , outportYDim_(4096)
+    , useIndividualView_("indvidual_view", "Should show only one view", false)
+    , viewProp_("view", "View number", 0, 0, 44, 1)
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
+    addPort(inport_);
     addPort(outport_);
-    addPort(firstImage_);
-    addPort(secondImage_);
-    addProperty(camera_);
-    addProperty(trackball_);
-    addProperty(gridPosition_);
+    addProperty(useIndividualView_);
+    addProperty(viewProp_);
+    addProperty(numClips_);
     addProperty(regionSizeProperty_);
     addProperty(viewConeProperty_);
     addProperty(verticalAngleProperty_);
     addProperty(shouldShear_);
+    addProperty(camera_);
+    addProperty(trackball_);
 
-    // Use this to define a fixed size vertex grid
-    outport_.setDimensions(size2_t(outportXDim_, outportYDim_));
-    width_ = outportXDim_;
-    height_ = outportYDim_;
+    useIndividualView_.onChange(
+        [this]() {onViewToggled(); });
+    onViewToggled();
     outport_.setHandleResizeEvents(false);
-    (&firstImage_)->setOutportDeterminesSize(true);
-    (&secondImage_)->setOutportDeterminesSize(true);
+}
 
+void multipleplaneProcessor::onViewToggled() {
+    if(useIndividualView_.get()) {
+        outportXDim_ = 819;
+        outportYDim_ = 455;
+        width_ = outportXDim_;
+        height_ = outportYDim_;
+    }
+    else {
+        outportXDim_ = 4096;
+        outportYDim_ = 4096;
+        width_ = outportXDim_ / 5;
+        height_ = outportYDim_ / 9;
+    }
+    viewProp_.setVisible(useIndividualView_.get());
+    // Use this to define a fixed size vertex grid
+    outport_.setDimensions(size2_t(outportXDim_, outportYDim_));    
+
+    // TODO may need to handle the memory more manually than this
     createVertexGrid(grid_, width_, height_);
     va_ = std::make_unique<VertexArray>();
     vb_ = std::make_shared<VertexBuffer>(
@@ -89,6 +107,7 @@ multipleplaneProcessor::multipleplaneProcessor()
     );
     LogInfo("Grid last element is " << grid_[2* (width_ * height_ -1)] << " " << grid_[2* (width_ * height_ -1) + 1]);
     va_->Addbuffer_2f(vb_, 0);
+
 }
 
 multipleplaneProcessor::~multipleplaneProcessor() {
@@ -125,6 +144,7 @@ void multipleplaneProcessor::process() {
     glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Set smoothing points information
+    //glEnable(GL_POINT_SMOOTH);
     glDisable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 
@@ -156,59 +176,76 @@ void multipleplaneProcessor::process() {
     float adjustedSize = size / tanf(glm::radians(cam->getFovy() * 0.5f));
     float offsetX = 0;
     float offsetY = 0;
-    
-    /*
-    for(int y = 0; y < 9; ++y)
-    {
-        for(int x = 0; x < 5; ++x)
-        {
-    */
-    int view = gridPosition_;
-    float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
-    offsetX = adjustedSize * tanf(glm::radians(angleAtView));
-    offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
-    mat4 currentViewMatrix = viewMatrix;
-    currentViewMatrix[3][0] -= offsetX;
-    currentViewMatrix[3][1] -= offsetY;
-    
-
-    mat4 currentProjectionMatrix = projectionMatrix;
-    if (shouldShear_.get()) {
-        currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
-        currentProjectionMatrix[2][1] -= offsetY / size;
-    }            
-    mat4 vpMatrix = currentProjectionMatrix * currentViewMatrix;
+    int num_vertices = width_ * height_;
+    va_->Bind();
     mat4 vpMatrixInverse = (
         camera_.get().getInverseViewMatrix() *
         camera_.get().getInverseProjectionMatrix()
     );
-    mat4 transformMatrix = vpMatrix * vpMatrixInverse;
-    shader_.setUniform("transformMatrix", transformMatrix);
-    /*
-    size2_t start(x * tileSize.x, y * tileSize.y);
-    glViewport(start.x, start.y, tileSize.x, tileSize.y);
-    
-    ++view;
-    
+    int view = viewProp_.get();
+
+    if(useIndividualView_.get()) {
+        for (int i = 0; i < numClips_; ++i) {
+            TextureUnitContainer units;
+            utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
+                                       ImageType::ColorDepth);
+            float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
+            offsetX = adjustedSize * tanf(glm::radians(angleAtView));
+            offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
+
+            mat4 currentViewMatrix = viewMatrix;
+            currentViewMatrix[3][0] -= offsetX;
+            currentViewMatrix[3][1] -= offsetY;
+            
+            mat4 currentProjectionMatrix = projectionMatrix;
+            if (shouldShear_.get()) {
+                currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+                currentProjectionMatrix[2][1] -= offsetY / size;
+            }            
+            mat4 vpMatrix = currentProjectionMatrix * currentViewMatrix;
+            mat4 transformMatrix = vpMatrix * vpMatrixInverse;
+            shader_.setUniform("transformMatrix", transformMatrix);
+            glDrawArrays(GL_POINTS, 0, num_vertices);      
         }
     }
-    glViewport(0, 0, 4096, 4096);
-    */
+    else {
+        for (int i = 0; i < numClips_; ++i) {
+            TextureUnitContainer units;
+            utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
+                                       ImageType::ColorDepth);
+            view = 0;
+            for(int y = 0; y < 9; ++y)
+            {
+                for(int x = 0; x < 5; ++x)
+                {
+                    float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
+                    offsetX = adjustedSize * tanf(glm::radians(angleAtView));
+                    offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
-    // Set up the source and draw the vertices
-    TextureUnitContainer units;
-    int num_vertices = width_ * height_;
-    va_->Bind();
-
-    utilgl::bindAndSetUniforms(shader_, units, *firstImage_.getData(), "tex0",
-                               ImageType::ColorDepth);
-    glDrawArrays(GL_POINTS, 0, num_vertices);
-
-    // Set up the second source
-    utilgl::bindAndSetUniforms(shader_, units, *secondImage_.getData(), "tex0",
-                               ImageType::ColorDepth);
-    glDrawArrays(GL_POINTS, 0, num_vertices);
+                    mat4 currentViewMatrix = viewMatrix;
+                    currentViewMatrix[3][0] -= offsetX;
+                    currentViewMatrix[3][1] -= offsetY;
+                    
+                    mat4 currentProjectionMatrix = projectionMatrix;
+                    if (shouldShear_.get()) {
+                        currentProjectionMatrix[2][0] -= offsetX / (size * cam->getAspectRatio());
+                        currentProjectionMatrix[2][1] -= offsetY / size;
+                    }            
+                    mat4 vpMatrix = currentProjectionMatrix * currentViewMatrix;
+                    mat4 transformMatrix = vpMatrix * vpMatrixInverse;
+                    shader_.setUniform("transformMatrix", transformMatrix);
+                    
+                    size2_t start(x * tileSize.x, y * tileSize.y);
+                    glViewport(start.x, start.y, tileSize.x, tileSize.y);
+                    glDrawArrays(GL_POINTS, 0, num_vertices);   
+                    
+                    ++view;
+                }
+            }
+        }
+        glViewport(0, 0, 4096, 4096);
+    }
 
     utilgl::deactivateCurrentTarget();
     shader_.deactivate();

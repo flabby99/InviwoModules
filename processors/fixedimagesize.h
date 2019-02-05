@@ -26,37 +26,56 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *********************************************************************************/
-#include "utils/sampler2d.glsl"
-layout (location = 0) in vec2 in_position;
-uniform mat4 transformMatrix = mat4(1);
 
-uniform sampler2D tex0Color;
-uniform sampler2D tex0Depth;
+#ifndef IVW_FIXEDIMAGESIZE_H
+#define IVW_FIXEDIMAGESIZE_H
 
-out vec4 colour;
-out float not_valid;
+#include <modules/layereddepth/layereddepthmoduledefine.h>
+#include <inviwo/core/common/inviwo.h>
+#include <inviwo/core/processors/processor.h>
+#include <inviwo/core/properties/ordinalproperty.h>
+#include <inviwo/core/ports/imageport.h>
 
-// TODO if this is slow this way, could do it in a fragment shader instead - can't control point size though
-void main(void) {
-    // Multiply the transform Matrix by the incoming vertex and go from there.
-    float depth = texture(tex0Depth, in_position).r;
-<<<<<<< HEAD
-    depth = 2 * depth - 1;
-    vec2 screen_pos = 2 * in_position - 1;
-    vec4 result = transformMatrix * vec4(screen_pos, depth, 1);
-=======
-    // depth comes in 0, 1 convert it to -1 1
-    depth = 2 * depth - 1;
+namespace inviwo {
 
-    vec4 screen_pos = vec4(2 * in_position - 1, depth, 1);
-    vec4 world_pos = transformMatrix * screen_pos;
->>>>>>> loop_implementation
-    colour = texture(tex0Color, in_position);
-    
-    // TODO calculate this based on distances and normals
-    gl_PointSize = 1.0;
+/** \docpage{org.inviwo.fixedimagesize, fixedimagesize}
+ * ![](org.inviwo.fixedimagesize.png?classIdentifier=org.inviwo.fixedimagesize)
+ * Explanation of how to use the processor.
+ *
+ * ### Inports
+ *   * __<Inport1>__ <description>.
+ *
+ * ### Outports
+ *   * __<Outport1>__ <description>.
+ *
+ * ### Properties
+ *   * __<Prop1>__ <description>.
+ *   * __<Prop2>__ <description>
+ */
 
-    // Division by w is done in hardware
-    gl_Position = world_pos;
-    not_valid = float(world_pos.w < 0);
-}
+/**
+ * \class fixedimagesize
+ * \brief VERY_BRIEFLY_DESCRIBE_THE_PROCESSOR
+ * DESCRIBE_THE_PROCESSOR_FROM_A_DEVELOPER_PERSPECTIVE
+ */
+class IVW_MODULE_LAYEREDDEPTH_API fixedimagesize : public Processor {
+public:
+    fixedimagesize();
+    virtual ~fixedimagesize() = default;
+
+    virtual void process() override;
+
+    virtual const ProcessorInfo getProcessorInfo() const override;
+    static const ProcessorInfo processorInfo_;
+    virtual void propagateEvent(Event* event, Outport*) override;
+
+private:
+    ImageInport inport_;
+    ImageOutport outport_;
+    //IntProperty xDim_;
+    //IntProperty yDim_;
+};
+
+}  // namespace inviwo
+
+#endif  // IVW_FIXEDIMAGESIZE_H

@@ -27,7 +27,7 @@
  *
  *********************************************************************************/
 
-#include <modules/layereddepth/processors/multiplaneraycaster.h>
+#include <modules/layereddepth/processors/vectorraycasting.h>
 #include <inviwo/core/io/serialization/serialization.h>
 #include <inviwo/core/io/serialization/versionconverter.h>
 #include <inviwo/core/interaction/events/keyboardevent.h>
@@ -41,17 +41,17 @@
 
 namespace inviwo {
 
-const ProcessorInfo LayeredRaycaster::processorInfo_{
-    "org.inviwo.LayeredVolumeRaycaster",  // Class identifier
-    "Layered Volume Raycaster",            // Display name
+const ProcessorInfo VectorRaycaster::processorInfo_{
+    "org.inviwo.VectorRaycaster",  // Class identifier
+    "Vector Volume Raycaster",            // Display name
     "Volume Rendering",            // Category
-    CodeState::Stable,             // Code state
+    CodeState::Experimental,             // Code state
     "GL, DVR, Raycasting"          // Tags
 };
 
-LayeredRaycaster::LayeredRaycaster()
+VectorRaycaster::VectorRaycaster()
     : Processor()
-    , shader_("layeredraycasting.frag", false)
+    , shader_("loopraycasting.frag", false)
     , volumePort_("volume")
     , entryPort_("entry")
     , exitPort_("exit")
@@ -66,14 +66,14 @@ LayeredRaycaster::LayeredRaycaster()
     , positionIndicator_("positionindicator", "Position Indicator")
     , toggleShading_("toggleShading", "Toggle Shading", [this](Event* e) { toggleShading(e); },
                      IvwKey::L)
-    , rayLengthBlock_("rayLengthBlock", "Ray Length Block", 0.0f, 0.0f, 2.0f, 0.01f)
-    , numClips_("num_planes", "Number of clips", 2, 1, 16, 1) {
+    , numClips_("num_planes", "Number of clips", 2, 1, 16, 1)
+    {
 
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
     addPort(volumePort_, "VolumePortGroup");
-    addPort(entryPort_, "ImagePortGroup1");
-    addPort(exitPort_, "ImagePortGroup1");
+    addPort(entryPort_);
+    addPort(exitPort_);
     addPort(outport_);
     addPort(backgroundPort_, "ImagePortGroup1");
 
@@ -124,38 +124,20 @@ LayeredRaycaster::LayeredRaycaster()
     addProperty(toggleShading_);
 
     addProperty(numClips_);
-    addProperty(rayLengthBlock_);
-    
-    numClips_.onChange(
-        [this]() {initialiseImageData(); });
 
     outImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
-    initialiseImageData();
 }
 
-const ProcessorInfo LayeredRaycaster::getProcessorInfo() const { return processorInfo_; }
+const ProcessorInfo VectorRaycaster::getProcessorInfo() const { return processorInfo_; }
 
-void LayeredRaycaster::initializeResources() {
+void VectorRaycaster::initializeResources() {
     utilgl::addDefines(shader_, raycasting_, isotfComposite_, camera_, lighting_,
                        positionIndicator_);
     utilgl::addShaderDefinesBGPort(shader_, backgroundPort_);
     shader_.build();
 }
 
-void LayeredRaycaster::initialiseImageData() {
-    // TEMP - change this so it happens when entry port is resized
-    //size2_t dim = entryPort_.getData()->getDimensions();
-    size2_t dim = size2_t(819, 455);
-    outImages_->clear();
-    outImages_->reserve(numClips_.get());
-    auto type = DataVec4UInt16::get();
-    for(int i = 0; i < numClips_; ++i){
-        auto outImage = std::make_shared<Image>(dim, type);
-        outImages_->push_back(outImage);
-    }
-}
-
-void LayeredRaycaster::process() {
+void VectorRaycaster::process() {
     if (volumePort_.isChanged()) {
         auto newVolume = volumePort_.getData();
 
@@ -179,43 +161,41 @@ void LayeredRaycaster::process() {
         LogWarn("No GL rep !!!");
         return;
     }
+    outImages_->clear();
+
     shader_.activate();
     TextureUnitContainer units;
     utilgl::bindAndSetUniforms(shader_, units, *loadedVolume_, "volume");
     utilgl::bindAndSetUniforms(shader_, units, isotfComposite_);
-    utilgl::bindAndSetUniforms(shader_, units, exitPort_, ImageType::ColorDepth);
-    utilgl::setUniforms(shader_, camera_, lighting_, raycasting_, positionIndicator_,
-                        channel_, rayLengthBlock_);
     if (backgroundPort_.hasData()) {
         utilgl::bindAndSetUniforms(shader_, units, backgroundPort_, ImageType::ColorDepthPicking);
     }
+    utilgl::setUniforms(shader_, camera_, lighting_, raycasting_, positionIndicator_,
+                        channel_);
 
-    // TODO would be fast to explicitly do the first step outside of loop with new shader
-    for (int i = 0; i < numClips_.get(); ++i) {
-        TextureUnitContainer newUnits;
-        if(i == 0) {
-            utilgl::bindAndSetUniforms(shader_, newUnits, entryPort_, ImageType::ColorDepthPicking);
-        }
-        else {
-            utilgl::bindAndSetUniforms(shader_, newUnits, *outImages_->at(i - 1), "entry", ImageType::ColorDepthPicking);
-        }
-        if (i == numClips_.get() - 1) {
-            shader_.setUniform("rayLengthScale", 1.0f);
-        }
-        else {
-            shader_.setUniform("rayLengthScale", (float)numClips_.get());
-        }
-        
-        utilgl::activateAndClearTarget(*outImages_->at(i), ImageType::ColorDepthPicking);
+    for (int i = 0; i < numClips_; ++i) {
+        TextureUnitContainer moreUnits;
+        size2_t dim = (*entryPort_.getData())[i]->getDimensions();
+        auto outImage = std::make_shared<Image>(dim);
+        utilgl::activateAndClearTarget(*outImage, ImageType::ColorDepthPicking);
+
+        utilgl::bindAndSetUniforms(
+            shader_, moreUnits, 
+            *entryPort_.getData()->at(i), "entry", ImageType::ColorDepthPicking
+            );
+        utilgl::bindAndSetUniforms(
+            shader_, moreUnits, 
+            *exitPort_.getData()->at(i), "exit", ImageType::ColorDepth);
 
         utilgl::singleDrawImagePlaneRect();
+        outImages_->push_back(outImage);    
     }
     outport_.setData(outImages_);
     shader_.deactivate();
     utilgl::deactivateCurrentTarget();
 }
 
-void LayeredRaycaster::toggleShading(Event*) {
+void VectorRaycaster::toggleShading(Event*) {
     if (lighting_.shadingMode_.get() == ShadingMode::None) {
         lighting_.shadingMode_.set(ShadingMode::Phong);
     } else {
@@ -224,7 +204,7 @@ void LayeredRaycaster::toggleShading(Event*) {
 }
 
 // override to do member renaming.
-void LayeredRaycaster::deserialize(Deserializer& d) {
+void VectorRaycaster::deserialize(Deserializer& d) {
     util::renamePort(d, {{&entryPort_, "entry-points"}, {&exitPort_, "exit-points"}});
     Processor::deserialize(d);
 }

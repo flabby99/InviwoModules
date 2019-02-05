@@ -26,37 +26,45 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *********************************************************************************/
-#include "utils/sampler2d.glsl"
-layout (location = 0) in vec2 in_position;
-uniform mat4 transformMatrix = mat4(1);
 
-uniform sampler2D tex0Color;
-uniform sampler2D tex0Depth;
+#include <modules/layereddepth/processors/fixedimagesize.h>
 
-out vec4 colour;
-out float not_valid;
+namespace inviwo {
 
-// TODO if this is slow this way, could do it in a fragment shader instead - can't control point size though
-void main(void) {
-    // Multiply the transform Matrix by the incoming vertex and go from there.
-    float depth = texture(tex0Depth, in_position).r;
-<<<<<<< HEAD
-    depth = 2 * depth - 1;
-    vec2 screen_pos = 2 * in_position - 1;
-    vec4 result = transformMatrix * vec4(screen_pos, depth, 1);
-=======
-    // depth comes in 0, 1 convert it to -1 1
-    depth = 2 * depth - 1;
+// The Class Identifier has to be globally unique. Use a reverse DNS naming scheme
+const ProcessorInfo fixedimagesize::processorInfo_{
+    "org.inviwo.fixedimagesize",      // Class identifier
+    "Fixed Image Size",                // Display name
+    "Utility",              // Category
+    CodeState::Stable,  // Code state
+    Tags::CPU,               // Tags
+};
+const ProcessorInfo fixedimagesize::getProcessorInfo() const { return processorInfo_; }
 
-    vec4 screen_pos = vec4(2 * in_position - 1, depth, 1);
-    vec4 world_pos = transformMatrix * screen_pos;
->>>>>>> loop_implementation
-    colour = texture(tex0Color, in_position);
-    
-    // TODO calculate this based on distances and normals
-    gl_PointSize = 1.0;
+fixedimagesize::fixedimagesize()
+    : Processor()
+    , inport_("inport")
+    , outport_("outport")
+    {
 
-    // Division by w is done in hardware
-    gl_Position = world_pos;
-    not_valid = float(world_pos.w < 0);
+    addPort(outport_);
+    addPort(inport_);
+
+    outport_.setHandleResizeEvents(false);
+    inport_.setOutportDeterminesSize(false);
 }
+
+void fixedimagesize::process() {
+    outport_.setData(inport_.getData());
+}
+
+void fixedimagesize::propagateEvent(Event* event, Outport* target) {
+    if (event->hash() == ResizeEvent::chash()) {
+        event->markAsUsed();
+    }
+    else { 
+        Processor::propagateEvent(event, target);
+    }
+}
+
+}  // namespace inviwo

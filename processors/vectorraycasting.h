@@ -27,8 +27,8 @@
  *
  *********************************************************************************/
 
-#ifndef IVW_LAYERED_VOLUMERAYCASTER_H
-#define IVW_LAYERED_VOLUMERAYCASTER_H
+#ifndef IVW_VECTOR_RAYCASTER_H
+#define IVW_VECTOR_RAYCASTER_H
 
 #include <modules/layereddepth/layereddepthmoduledefine.h>
 #include <inviwo/core/common/inviwo.h>
@@ -46,9 +46,8 @@
 #include <inviwo/core/ports/imageport.h>
 #include <inviwo/core/ports/volumeport.h>
 #include <modules/opengl/shader/shader.h>
+#include <inviwo/core/ports/datainport.h>
 #include <inviwo/core/datastructures/image/image.h>
-#include <vector>
-#include <inviwo/core/ports/dataoutport.h>
 
 namespace inviwo {
 
@@ -81,10 +80,14 @@ namespace inviwo {
  *   * __Toggle Shading__    boolean flag for enabling/disabling shading
  *
  */
-class IVW_MODULE_LAYEREDDEPTH_API LayeredRaycaster : public Processor {
+
+// TODO could considering combining the depth method in this
+// With formerly used depth heuristics.
+
+class IVW_MODULE_LAYEREDDEPTH_API VectorRaycaster : public Processor {
 public:
-    LayeredRaycaster();
-    virtual ~LayeredRaycaster() = default;
+    VectorRaycaster();
+    virtual ~VectorRaycaster() = default;
 
     virtual void initializeResources() override;
 
@@ -98,13 +101,11 @@ protected:
 
     void toggleShading(Event*);
 
-    void initialiseImageData();
-
     Shader shader_;
     VolumeInport volumePort_;
     std::shared_ptr<const Volume> loadedVolume_;
-    ImageInport entryPort_;
-    ImageInport exitPort_;
+    DataInport<std::vector<std::shared_ptr<Image>>> entryPort_;
+    DataInport<std::vector<std::shared_ptr<Image>>> exitPort_;
     ImageInport backgroundPort_;
     DataOutport<std::vector<std::shared_ptr<Image>>> outport_;
 
@@ -117,7 +118,6 @@ protected:
     VolumeIndicatorProperty positionIndicator_;
     EventProperty toggleShading_;
 
-    FloatProperty rayLengthBlock_;
     IntProperty numClips_;
 
     std::shared_ptr<std::vector<std::shared_ptr<Image>>> outImages_;
@@ -125,4 +125,4 @@ protected:
 
 }  // namespace inviwo
 
-#endif  // IVW_LAYERED_VOLUMERAYCASTER_H
+#endif  // IVW_VECTOR_RAYCASTER_H

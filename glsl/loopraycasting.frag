@@ -65,8 +65,6 @@ uniform VolumeIndicatorParameters positionindicator;
 uniform RaycastingParameters raycaster;
 uniform IsovalueParameters isovalues;
 
-uniform float rayLengthScale = 1.0f;
-uniform float rayLengthBlock = 0.f;
 uniform int channel;
 
 #define ERT_THRESHOLD 0.99  // threshold for early ray termination
@@ -76,13 +74,10 @@ uniform int channel;
 #endif
 
 
-vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth, out vec4 pos) {
+vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgroundDepth) {
     vec4 result = vec4(0.0);
     vec3 rayDirection = exitPoint - entryPoint;
     float tEnd = length(rayDirection);
-    if (tEnd > rayLengthBlock) {
-        tEnd = tEnd / rayLengthScale;
-    }
     float tIncr = min(
         tEnd, tEnd / (raycaster.samplingRate * length(rayDirection * volumeParameters.dimensions)));
     float samples = ceil(tEnd / tIncr);
@@ -153,12 +148,11 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
             result = APPLY_COMPOSITING(result, color, samplePos, voxel, gradient, camera,
                                        raycaster.isoValue, t, tDepth, tIncr);
         }
-// ERT can be used if pos is set to tEnd.
 #endif // INCLUDE_DVR
+
         // early ray termination
         if (result.a > ERT_THRESHOLD) {
             t = tEnd;
-            samplePos = entryPoint + (t - tIncr) * rayDirection;
         } else {
 #if defined(ISOSURFACE_ENABLED) && defined(INCLUDE_ISOSURFACES)
             // make sure that tIncr has the correct length since drawIsoSurface will modify it
@@ -184,17 +178,13 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
     gl_FragDepth = min(backgroundDepth, tDepth);
 
-    pos = vec4(samplePos, 1.0);
     return result;
 }
 
 void main() {
-    // TODO will be faster if I explicity remove this tex sample for later iters
     vec2 texCoords = gl_FragCoord.xy * entryParameters.reciprocalDimensions;
     vec3 entryPoint = texture(entryColor, texCoords).rgb;
     vec3 exitPoint = texture(exitColor, texCoords).rgb;
-    vec3 position = texture(entryPicking, texCoords).rgb;
-    vec4 pos;
 
     vec4 color = vec4(0);
 
@@ -209,18 +199,8 @@ void main() {
         discard;
     }
 #endif // BACKGROUND_AVAILABLE
-    bool not_close_to_zero;
-    bool not_zero = (dot(position, position) != 0);
-    if (not_zero) {
-        entryPoint = position;
-        not_close_to_zero = any(greaterThan(abs(entryPoint - exitPoint), vec3(0.01)));
-    }
-    else {
-        not_close_to_zero = (entryPoint != exitPoint);
-    }
-    if (not_close_to_zero) {
-        color = rayTraversal(entryPoint, exitPoint, texCoords, backgroundDepth, pos);
-        PickingData = pos;
+    if (entryPoint != exitPoint) {
+        color = rayTraversal(entryPoint, exitPoint, texCoords, backgroundDepth);
     }
     FragData0 = color;
 }

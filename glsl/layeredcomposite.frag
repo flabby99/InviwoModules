@@ -26,6 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  *********************************************************************************/
+#define REF_SAMPLING_INTERVAL 150.0
 
 #include "utils/structs.glsl"
 #include "utils/sampler2d.glsl"
@@ -56,7 +57,8 @@ void main() {
     // colorOut.rgb = color0.rgb + (1.0 - color0.a) * color1.rgb;
     // colorOut = color0 * color0.a + color1 * (1 - color0.a);
     // colorOut.rgb = color1.rbg * color.a + (1 - color0.r)
-
+    //float tIncr = 0.004;
+    //color0.a = 1.0 - pow(1.0 - color0.a, tIncr * REF_SAMPLING_INTERVAL);
     colorOut = (1.0 - color0.a) * color1 + color0;
     pickingOut = (picking1.a > 0 ? picking1 : (color1.a < 0.95 ? picking0 : vec4(0.0)));
     depthOut = min(depth0, depth1);
