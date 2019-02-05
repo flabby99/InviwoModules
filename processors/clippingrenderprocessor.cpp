@@ -80,11 +80,35 @@ clippingRenderProcessor::clippingRenderProcessor()
     useCameraNormalAsPlane_.onChange(
         [this]() { onAlignPlaneNormalToCameraNormalToggled(); });
 
+    numClips_.onChange(
+        [this]() {initialiseImageData(); });
+    xDim_.onChange(
+        [this]() {initialiseImageData(); });
+    yDim_.onChange(
+        [this]() {initialiseImageData(); });
+
     entryImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
     exitImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
+    initialiseImageData();
 }
 
 clippingRenderProcessor::~clippingRenderProcessor() {
+}
+
+void clippingRenderProcessor::initialiseImageData() {
+    size2_t dim = size2_t(xDim_, yDim_);
+    entryImages_->clear();
+    entryImages_->reserve(numClips_.get());
+
+    exitImages_->clear();
+    exitImages_->reserve(numClips_.get());
+    auto type = DataVec4UInt16::get();
+    for(int i = 0; i < numClips_; ++i){
+        auto outImage = std::make_shared<Image>(dim, type);
+        entryImages_->push_back(outImage);
+        outImage = std::make_shared<Image>(dim, type);
+        exitImages_->push_back(outImage);
+    }
 }
 
 void clippingRenderProcessor::onAlignPlaneNormalToCameraNormalToggled() {
@@ -290,13 +314,7 @@ void clippingRenderProcessor::process() {
     Plane forwardPlane;
     Plane backwardPlane;
 
-    exitImages_->clear();
-    entryImages_->clear();
-
     for (int i = 0; i < numClips_; ++i) {
-        // TODO can change this to only happen when the dimensions are changed
-        auto entryImage = std::make_shared<Image>(size2_t(xDim_, yDim_),  DataVec4UInt16::get());
-        auto exitImage = std::make_shared<Image>(size2_t(xDim_, yDim_),  DataVec4UInt16::get());
         float forwardDistance = distances[i];
         float backwardDistance = -distances[i + 1];
 
@@ -315,7 +333,7 @@ void clippingRenderProcessor::process() {
             // Turn on clipping plane distances
             glEnable(GL_CLIP_DISTANCE0);
             glEnable(GL_CLIP_DISTANCE1);
-            utilgl::activateAndClearTarget(*entryImage, ImageType::ColorDepth);
+            utilgl::activateAndClearTarget(*entryImages_->at(i), ImageType::ColorDepth);
             utilgl::CullFaceState cull(GL_BACK);
             drawer.draw();    
         }
@@ -353,7 +371,6 @@ void clippingRenderProcessor::process() {
             new_drawer.draw();
         }
         
-        entryImages_->push_back(entryImage);
         faceShader_.deactivate();
         shader_.activate();
 
@@ -364,7 +381,7 @@ void clippingRenderProcessor::process() {
             // Turn on clipping plane distances
             glEnable(GL_CLIP_DISTANCE0);
             glEnable(GL_CLIP_DISTANCE1);
-            utilgl::activateAndClearTarget(*exitImage, ImageType::ColorDepth);
+            utilgl::activateAndClearTarget(*exitImages_->at(i), ImageType::ColorDepth);
             utilgl::CullFaceState cull(GL_FRONT);
             drawer2.draw();
         }
@@ -392,7 +409,6 @@ void clippingRenderProcessor::process() {
             auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
             new_drawer.draw();
         }
-        exitImages_->push_back(exitImage);
         utilgl::deactivateCurrentTarget();
         faceShader_.deactivate();
     }

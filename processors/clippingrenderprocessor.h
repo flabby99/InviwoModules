@@ -84,6 +84,7 @@ private:
     void onAlignPlaneNormalToCameraNormalToggled();
     void InviwoPlaneIntersectionPoints(std::vector<vec3> &out_points, const Plane& worldSpacePlane);
     void FindPlaneDistances(std::vector<float> &out_distances);
+    void initialiseImageData();
 
     MeshInport inport_;
     DataOutport<std::vector<std::shared_ptr<Image>>> entryPort_;
