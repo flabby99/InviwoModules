@@ -174,16 +174,17 @@ void VectorRaycaster::process() {
                         channel_);
 
     for (int i = 0; i < numClips_; ++i) {
+        TextureUnitContainer moreUnits;
         size2_t dim = (*entryPort_.getData())[i]->getDimensions();
         auto outImage = std::make_shared<Image>(dim);
         utilgl::activateAndClearTarget(*outImage, ImageType::ColorDepthPicking);
 
         utilgl::bindAndSetUniforms(
-            shader_, units, 
+            shader_, moreUnits, 
             *entryPort_.getData()->at(i), "entry", ImageType::ColorDepthPicking
             );
         utilgl::bindAndSetUniforms(
-            shader_, units, 
+            shader_, moreUnits, 
             *exitPort_.getData()->at(i), "exit", ImageType::ColorDepth);
 
         utilgl::singleDrawImagePlaneRect();
