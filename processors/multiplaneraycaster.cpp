@@ -145,7 +145,7 @@ void LayeredRaycaster::initializeResources() {
 void LayeredRaycaster::initialiseImageData() {
     // TEMP - change this so it happens when entry port is resized
     //size2_t dim = entryPort_.getData()->getDimensions();
-    size2_t dim = size2_t(512, 512);
+    size2_t dim = size2_t(819, 455);
     outImages_->clear();
     outImages_->reserve(numClips_.get());
     auto type = DataVec4UInt16::get();
