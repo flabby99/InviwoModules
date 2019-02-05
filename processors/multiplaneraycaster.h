@@ -46,6 +46,9 @@
 #include <inviwo/core/ports/imageport.h>
 #include <inviwo/core/ports/volumeport.h>
 #include <modules/opengl/shader/shader.h>
+#include <inviwo/core/datastructures/image/image.h>
+#include <vector>
+#include <inviwo/core/ports/dataoutport.h>
 
 namespace inviwo {
 
@@ -95,13 +98,15 @@ protected:
 
     void toggleShading(Event*);
 
+    void initialiseImageData();
+
     Shader shader_;
     VolumeInport volumePort_;
     std::shared_ptr<const Volume> loadedVolume_;
     ImageInport entryPort_;
     ImageInport exitPort_;
     ImageInport backgroundPort_;
-    ImageOutport outport_;
+    DataOutport<std::vector<std::shared_ptr<Image>>> outport_;
 
     OptionPropertyInt channel_;
     RaycastingProperty raycasting_;
@@ -112,8 +117,10 @@ protected:
     VolumeIndicatorProperty positionIndicator_;
     EventProperty toggleShading_;
 
-    FloatProperty rayLengthScale_;
     FloatProperty rayLengthBlock_;
+    IntProperty numClips_;
+
+    std::shared_ptr<std::vector<std::shared_ptr<Image>>> outImages_;
 };
 
 }  // namespace inviwo

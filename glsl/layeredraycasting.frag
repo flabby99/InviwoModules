@@ -59,16 +59,14 @@ uniform sampler2D bgColor;
 uniform sampler2D bgPicking;
 uniform sampler2D bgDepth;
 
-uniform ImageParameters outportParameters;
-
 uniform LightParameters lighting;
 uniform CameraParameters camera;
 uniform VolumeIndicatorParameters positionindicator;
 uniform RaycastingParameters raycaster;
 uniform IsovalueParameters isovalues;
 
-uniform float rayLengthScale;
-uniform float rayLengthBlock;
+uniform float rayLengthScale = 1.0f;
+uniform float rayLengthBlock = 0.f;
 uniform int channel;
 
 #define ERT_THRESHOLD 0.99  // threshold for early ray termination
@@ -155,10 +153,12 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
             result = APPLY_COMPOSITING(result, color, samplePos, voxel, gradient, camera,
                                        raycaster.isoValue, t, tDepth, tIncr);
         }
+// ERT can be used if pos is set to tEnd.
 #endif // INCLUDE_DVR
         // early ray termination
         if (result.a > ERT_THRESHOLD) {
             t = tEnd;
+            samplePos = entryPoint + (t - tIncr) * rayDirection;
         } else {
 #if defined(ISOSURFACE_ENABLED) && defined(INCLUDE_ISOSURFACES)
             // make sure that tIncr has the correct length since drawIsoSurface will modify it
@@ -190,7 +190,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 
 void main() {
     // TODO will be faster if I explicity remove this tex sample for later iters
-    vec2 texCoords = gl_FragCoord.xy * outportParameters.reciprocalDimensions;
+    vec2 texCoords = gl_FragCoord.xy * entryParameters.reciprocalDimensions;
     vec3 entryPoint = texture(entryColor, texCoords).rgb;
     vec3 exitPoint = texture(exitColor, texCoords).rgb;
     vec3 position = texture(entryPicking, texCoords).rgb;

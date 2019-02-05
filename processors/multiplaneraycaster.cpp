@@ -56,7 +56,7 @@ LayeredRaycaster::LayeredRaycaster()
     , entryPort_("entry")
     , exitPort_("exit")
     , backgroundPort_("bg")
-    , outport_("outport", DataVec4UInt16::get())
+    , outport_("outport")
     , channel_("channel", "Render Channel")
     , raycasting_("raycaster", "Raycasting")
     , isotfComposite_("isotfComposite", "TF & Isovalues", &volumePort_,
@@ -66,15 +66,15 @@ LayeredRaycaster::LayeredRaycaster()
     , positionIndicator_("positionindicator", "Position Indicator")
     , toggleShading_("toggleShading", "Toggle Shading", [this](Event* e) { toggleShading(e); },
                      IvwKey::L)
-    , rayLengthScale_("rayLengthScale", "Ray Length Scale", 1.0f, 1.0f, 20.0f, 0.1f)
-    , rayLengthBlock_("rayLengthBlock", "Ray Length Block", 0.0f, 0.0f, 2.0f, 0.01f) {
+    , rayLengthBlock_("rayLengthBlock", "Ray Length Block", 0.0f, 0.0f, 2.0f, 0.01f)
+    , numClips_("num_planes", "Number of clips", 2, 1, 16, 1) {
 
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
     addPort(volumePort_, "VolumePortGroup");
     addPort(entryPort_, "ImagePortGroup1");
     addPort(exitPort_, "ImagePortGroup1");
-    addPort(outport_, "ImagePortGroup1");
+    addPort(outport_);
     addPort(backgroundPort_, "ImagePortGroup1");
 
     backgroundPort_.setOptional(true);
@@ -123,8 +123,14 @@ LayeredRaycaster::LayeredRaycaster()
     addProperty(positionIndicator_);
     addProperty(toggleShading_);
 
-    addProperty(rayLengthScale_);
+    addProperty(numClips_);
     addProperty(rayLengthBlock_);
+    
+    numClips_.onChange(
+        [this]() {initialiseImageData(); });
+
+    outImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
+    initialiseImageData();
 }
 
 const ProcessorInfo LayeredRaycaster::getProcessorInfo() const { return processorInfo_; }
@@ -134,6 +140,19 @@ void LayeredRaycaster::initializeResources() {
                        positionIndicator_);
     utilgl::addShaderDefinesBGPort(shader_, backgroundPort_);
     shader_.build();
+}
+
+void LayeredRaycaster::initialiseImageData() {
+    // TEMP - change this so it happens when entry port is resized
+    //size2_t dim = entryPort_.getData()->getDimensions();
+    size2_t dim = size2_t(512, 512);
+    outImages_->clear();
+    outImages_->reserve(numClips_.get());
+    auto type = DataVec4UInt16::get();
+    for(int i = 0; i < numClips_; ++i){
+        auto outImage = std::make_shared<Image>(dim, type);
+        outImages_->push_back(outImage);
+    }
 }
 
 void LayeredRaycaster::process() {
@@ -160,23 +179,38 @@ void LayeredRaycaster::process() {
         LogWarn("No GL rep !!!");
         return;
     }
-
-    utilgl::activateAndClearTarget(outport_);
     shader_.activate();
-
     TextureUnitContainer units;
     utilgl::bindAndSetUniforms(shader_, units, *loadedVolume_, "volume");
     utilgl::bindAndSetUniforms(shader_, units, isotfComposite_);
-    utilgl::bindAndSetUniforms(shader_, units, entryPort_, ImageType::ColorDepthPicking);
     utilgl::bindAndSetUniforms(shader_, units, exitPort_, ImageType::ColorDepth);
+    utilgl::setUniforms(shader_, camera_, lighting_, raycasting_, positionIndicator_,
+                        channel_, rayLengthBlock_);
     if (backgroundPort_.hasData()) {
         utilgl::bindAndSetUniforms(shader_, units, backgroundPort_, ImageType::ColorDepthPicking);
     }
-    utilgl::setUniforms(shader_, outport_, camera_, lighting_, raycasting_, positionIndicator_,
-                        channel_, rayLengthBlock_, rayLengthScale_);
 
-    utilgl::singleDrawImagePlaneRect();
+    // TODO would be fast to explicitly do the first step outside of loop with new shader
+    for (int i = 0; i < numClips_.get(); ++i) {
+        TextureUnitContainer newUnits;
+        if(i == 0) {
+            utilgl::bindAndSetUniforms(shader_, newUnits, entryPort_, ImageType::ColorDepthPicking);
+        }
+        else {
+            utilgl::bindAndSetUniforms(shader_, newUnits, *outImages_->at(i - 1), "entry", ImageType::ColorDepthPicking);
+        }
+        if (i == numClips_.get() - 1) {
+            shader_.setUniform("rayLengthScale", 1.0f);
+        }
+        else {
+            shader_.setUniform("rayLengthScale", (float)numClips_.get());
+        }
+        
+        utilgl::activateAndClearTarget(*outImages_->at(i), ImageType::ColorDepthPicking);
 
+        utilgl::singleDrawImagePlaneRect();
+    }
+    outport_.setData(outImages_);
     shader_.deactivate();
     utilgl::deactivateCurrentTarget();
 }
