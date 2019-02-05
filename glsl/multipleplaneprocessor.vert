@@ -40,17 +40,11 @@ out float not_valid;
 void main(void) {
     // Multiply the transform Matrix by the incoming vertex and go from there.
     float depth = texture(tex0Depth, in_position).r;
-<<<<<<< HEAD
-    depth = 2 * depth - 1;
-    vec2 screen_pos = 2 * in_position - 1;
-    vec4 result = transformMatrix * vec4(screen_pos, depth, 1);
-=======
     // depth comes in 0, 1 convert it to -1 1
     depth = 2 * depth - 1;
 
     vec4 screen_pos = vec4(2 * in_position - 1, depth, 1);
     vec4 world_pos = transformMatrix * screen_pos;
->>>>>>> loop_implementation
     colour = texture(tex0Color, in_position);
     
     // TODO calculate this based on distances and normals
