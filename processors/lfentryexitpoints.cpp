@@ -34,7 +34,11 @@ lfentryexitpoints::lfentryexitpoints()
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
     , useIndividualView_("indvidual_view", "Should show only one view", false)
     , viewProp_("view", "View number", 0, 0, 44, 1)
-    , entryExitShader_("lfentryexitpoints.vert", "lfentryexitpoints.frag") {
+    , entryExitShader_("lfentryexitpoints.vert", "lfentryexitpoints.frag")
+    , nearClipShader_("img_identity.vert", "lfcapnearclipping.frag") 
+    {
+    entryExitShader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
+    nearClipShader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
     addPort(inport_);
     addPort(entryPort_, "ImagePortGroup1");
@@ -59,6 +63,14 @@ lfentryexitpoints::lfentryexitpoints()
 
     useIndividualView_.onChange(
         [this]() {onViewToggled(); });
+
+    inverseMatrices_ = std::make_unique<std::vector<mat4>>();
+    inverseMatrices_->reserve(45);
+}
+
+void lfentryexitpoints::initializeResources() {
+    entryExitShader_.build();
+    nearClipShader_.build();
 }
 
 void lfentryexitpoints::onViewToggled() {
@@ -75,7 +87,7 @@ void lfentryexitpoints::onViewToggled() {
 
 void lfentryexitpoints::process() {
     // outport_.setData(myImage);
-    
+    inverseMatrices_->clear();
     {
         utilgl::DepthFuncState depthfunc(GL_ALWAYS);
         utilgl::PointSizeState pointsize(1.0f);
@@ -98,14 +110,38 @@ void lfentryexitpoints::process() {
 
         {
             // generate entry points
+            if (!tmpEntry_ || tmpEntry_->getDimensions() != entryPort_.getData()->getDimensions() ||
+                tmpEntry_->getDataFormat() != entryPort_.getData()->getDataFormat()) {
+                tmpEntry_.reset(new Image(entryPort_.getData()->getDimensions(), entryPort_.getData()->getDataFormat()));
+            }
             utilgl::activateAndClearTarget(
-                entryPort_, 
+                *tmpEntry_, 
                 ImageType::ColorDepth
             );
 
             utilgl::CullFaceState cull(GL_BACK);
             drawViews();
             entryExitShader_.deactivate();
+            utilgl::deactivateCurrentTarget();
+        }
+
+        {
+            // draw near plane to fix any clipped entry points
+            // render an image plane aligned quad to cap the proxy geometry
+            utilgl::activateAndClearTarget(entryPort_, ImageType::ColorDepth);
+            nearClipShader_.activate();
+
+            TextureUnitContainer units;
+            utilgl::bindAndSetUniforms(nearClipShader_, units, *tmpEntry_, "entry", ImageType::ColorDepth);
+            utilgl::bindAndSetUniforms(nearClipShader_, units, exitPort_, ImageType::ColorDepth);
+
+            // the rendered plane is specified in camera coordinates
+            // thus we must transform from camera to world to texture coordinates
+            auto& camera = camera_.get();
+            nearClipShader_.setUniform("nearDist", camera.getNearPlaneDist());
+
+            drawNearPlanes();
+            nearClipShader_.deactivate();
             utilgl::deactivateCurrentTarget();
         }
     }
@@ -146,8 +182,7 @@ void lfentryexitpoints::drawViews()
         }            
         mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
         entryExitShader_.setUniform("dataToClip", mvpMatrix);
-        // size2_t start(x * tileSize.x, y * tileSize.y);
-        // glViewport(start.x, start.y, tileSize.x, tileSize.y);
+        inverseMatrices_->push_back(MatrixInvert(mvpMatrix));
         drawer.draw();
     }
     else {
@@ -172,10 +207,42 @@ void lfentryexitpoints::drawViews()
                 }            
                 mat4 mvpMatrix = currentProjectionMatrix * currentViewMatrix * worldMatrix;
                 entryExitShader_.setUniform("dataToClip", mvpMatrix);
+                inverseMatrices_->push_back(MatrixInvert(mvpMatrix));
                 size2_t start(x * tileSize.x, y * tileSize.y);
                 glViewport(start.x, start.y, tileSize.x, tileSize.y);
                 drawer.draw();
                 ++view;
+            }
+        }
+        
+        glViewport(0, 0, 4096, 4096);
+    }
+}
+
+// TODO can speed this  up by saving the camera matrix from drawviews
+void lfentryexitpoints::drawNearPlanes() {
+    size2_t tileSize(819, 455);
+    vec4 viewport;
+    
+    if(useIndividualView_.get()) {
+        nearClipShader_.setUniform("NDCToTextureMat", inverseMatrices_->at(0));
+        viewport = vec4(0.f, 0.f, 1.f, 1.f);
+        nearClipShader_.setUniform("viewport", viewport);
+        utilgl::singleDrawImagePlaneRect();;
+    }
+    else {
+        int count = 0;
+        for(int y = 0; y < 9; ++y)
+        {
+            for(int x = 0; x < 5; ++x)
+            {
+                nearClipShader_.setUniform("NDCToTextureMat", inverseMatrices_->at(count));
+                size2_t start(x * tileSize.x, y * tileSize.y);
+                glViewport(start.x, start.y, tileSize.x, tileSize.y);
+                viewport = vec4(start.x / 4096.f, start.y / 4096.f, tileSize.x / 4096.f, tileSize.y / 4096.f);
+                nearClipShader_.setUniform("viewport", viewport);
+                utilgl::singleDrawImagePlaneRect();
+                ++count;
             }
         }
         

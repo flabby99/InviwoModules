@@ -69,11 +69,14 @@ public:
     virtual ~lfentryexitpoints() = default;
 
     virtual void process() override;
+    virtual void initializeResources() override;
+
 
     virtual const ProcessorInfo getProcessorInfo() const override;
     static const ProcessorInfo processorInfo_;
 
     void drawViews();
+    void drawNearPlanes();
 
 private:
     void onViewToggled();
@@ -93,6 +96,10 @@ private:
     IntProperty viewProp_;
 
     Shader entryExitShader_;
+    Shader nearClipShader_;
+
+    std::unique_ptr<Image> tmpEntry_;
+    std::unique_ptr<std::vector<mat4>> inverseMatrices_;
 };
 
 }  // namespace inviwo

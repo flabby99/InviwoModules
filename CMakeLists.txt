@@ -27,6 +27,8 @@ set(SHADER_FILES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/lfswizzle.frag
     ${CMAKE_CURRENT_SOURCE_DIR}/glsl/lfswizzle.vert
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/glsl/lfcapnearclipping.frag
 )
 ivw_group("Shader Files" ${SHADER_FILES})
 
