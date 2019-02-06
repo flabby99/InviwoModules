@@ -61,9 +61,12 @@ clippingRenderProcessor::clippingRenderProcessor()
     , yDim_("ydim", "Image height", 455, 256, 512, 1)
     , shader_("clippingrenderprocessor.vert", "clippingrenderprocessor.frag")
     , faceShader_("facerender.vert", "facerender.frag")
+    , nearClipShader_("img_identity.vert", "capnearclipping.frag")
     {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
     faceShader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
+    nearClipShader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
+
 
     addPort(inport_);
     addPort(entryPort_, "ImagePortGroup1");
@@ -89,6 +92,8 @@ clippingRenderProcessor::clippingRenderProcessor()
 
     entryImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
     exitImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
+    tempImages_ = std::make_shared<std::vector<std::shared_ptr<Image>>>();
+
     initialiseImageData();
 }
 
@@ -102,12 +107,17 @@ void clippingRenderProcessor::initialiseImageData() {
 
     exitImages_->clear();
     exitImages_->reserve(numClips_.get());
+
+    tempImages_->clear();
+    tempImages_->reserve(numClips_.get());
     auto type = DataVec4UInt16::get();
     for(int i = 0; i < numClips_; ++i){
         auto outImage = std::make_shared<Image>(dim, type);
         entryImages_->push_back(outImage);
         outImage = std::make_shared<Image>(dim, type);
         exitImages_->push_back(outImage);
+        outImage = std::make_shared<Image>(dim, type);
+        tempImages_->push_back(outImage);
     }
 }
 
@@ -121,6 +131,7 @@ void clippingRenderProcessor::onAlignPlaneNormalToCameraNormalToggled() {
 void clippingRenderProcessor::initializeResources() {
     shader_.build();
     faceShader_.build();
+    nearClipShader_.build();
 }
 
 void clippingRenderProcessor::InviwoPlaneIntersectionPoints(std::vector<vec3> &out_points, const Plane& worldSpacePlane) {
@@ -311,8 +322,16 @@ void clippingRenderProcessor::process() {
         LogInfo(distance);
     }
 
+    auto inMesh = inport_.getData().get();
+
     Plane forwardPlane;
     Plane backwardPlane;
+    auto& camera = camera_.get();
+    auto direction = glm::normalize(camera.getDirection());
+    auto nearPos = camera.getLookFrom() + camera.getNearPlaneDist() * direction;
+    auto farPos = camera.getLookFrom() + camera.getFarPlaneDist() * direction;
+    Plane worldNearPlane = Plane(nearPos, direction);
+    Plane worldFarPlane = Plane(farPos, direction);
 
     for (int i = 0; i < numClips_; ++i) {
         float forwardDistance = distances[i];
@@ -329,11 +348,11 @@ void clippingRenderProcessor::process() {
 
         // Draw the front faces
         {
-            auto drawer = MeshDrawerGL::getDrawObject(inport_.getData().get());
+            auto drawer = MeshDrawerGL::getDrawObject(inMesh);
             // Turn on clipping plane distances
             glEnable(GL_CLIP_DISTANCE0);
             glEnable(GL_CLIP_DISTANCE1);
-            utilgl::activateAndClearTarget(*entryImages_->at(i), ImageType::ColorDepth);
+            utilgl::activateAndClearTarget(*tempImages_->at(i), ImageType::ColorDepth);
             utilgl::CullFaceState cull(GL_BACK);
             drawer.draw();    
         }
@@ -374,16 +393,15 @@ void clippingRenderProcessor::process() {
         faceShader_.deactivate();
         shader_.activate();
 
-        auto drawer2 = MeshDrawerGL::getDrawObject(inport_.getData().get());
         // Draw the back faces
         {
-            auto drawer = MeshDrawerGL::getDrawObject(inport_.getData().get());
+            auto drawer = MeshDrawerGL::getDrawObject(inMesh);
             // Turn on clipping plane distances
             glEnable(GL_CLIP_DISTANCE0);
             glEnable(GL_CLIP_DISTANCE1);
             utilgl::activateAndClearTarget(*exitImages_->at(i), ImageType::ColorDepth);
             utilgl::CullFaceState cull(GL_FRONT);
-            drawer2.draw();
+            drawer.draw();
         }
         
         shader_.deactivate();
@@ -409,8 +427,32 @@ void clippingRenderProcessor::process() {
             auto new_drawer = MeshDrawerGL::getDrawObject(ppd.get());
             new_drawer.draw();
         }
-        utilgl::deactivateCurrentTarget();
+
         faceShader_.deactivate();
+        nearClipShader_.activate();
+        
+        // Draw the near plane intersection
+        {
+            // render an image plane aligned quad to cap the proxy geometry
+            utilgl::activateAndClearTarget(*entryImages_->at(i), ImageType::ColorDepth);
+
+            TextureUnitContainer units;
+            utilgl::bindAndSetUniforms(nearClipShader_, units, *tempImages_->at(i), "entry", ImageType::ColorDepth);
+            utilgl::bindAndSetUniforms(nearClipShader_, units, *exitImages_->at(i), "exit", ImageType::ColorDepth);
+
+            // the rendered plane is specified in camera coordinates
+            // thus we must transform from camera to world to texture coordinates
+            mat4 clipToTexMat = inMesh->getCoordinateTransformer(camera).getClipToDataMatrix();
+            nearClipShader_.setUniform("NDCToTextureMat", clipToTexMat);
+            nearClipShader_.setUniform("nearDist", camera.getNearPlaneDist());
+
+            utilgl::singleDrawImagePlaneRect();
+            nearClipShader_.deactivate();
+            utilgl::deactivateCurrentTarget();
+        }
+
+        nearClipShader_.deactivate();
+        utilgl::deactivateCurrentTarget();
     }
     entryPort_.setData(entryImages_);
     exitPort_.setData(exitImages_);

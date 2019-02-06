@@ -102,9 +102,11 @@ private:
 
     Shader shader_;
     Shader faceShader_;
+    Shader nearClipShader_;
 
     std::shared_ptr<std::vector<std::shared_ptr<Image>>> entryImages_;
     std::shared_ptr<std::vector<std::shared_ptr<Image>>> exitImages_;
+    std::shared_ptr<std::vector<std::shared_ptr<Image>>> tempImages_;
 };
 
 }  // namespace inviwo
