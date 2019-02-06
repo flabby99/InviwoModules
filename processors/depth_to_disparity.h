@@ -40,7 +40,6 @@
 #include <modules/opengl/shader/shader.h>
 
 namespace inviwo {
-//TODO fix docs if care
 /** \docpage{org.inviwo.DepthToDisparity, Volume Raycaster}
  * ![](org.inviwo.MpiRayTracing.png?classIdentifier=org.inviwo.MpiRayTracing)
  * Processor for visualizing volumetric data by means of volume raycasting. Besides the

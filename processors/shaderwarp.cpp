@@ -151,7 +151,6 @@ void ShaderWarp::drawLGViews() {
         offsetX = adjustedSize * tanf(glm::radians(angleAtView));
         offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
 
-        // TODO this may not be needed (the division)
         disparityScale_x_ = (offsetX / size * cam->getAspectRatio());
         disparityScale_y_ = (offsetY / size);
         shift_ = offsetX / (size * cam->getAspectRatio());
