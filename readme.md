@@ -5,6 +5,5 @@
 - Check if there is an advantage to setting the position of opacity 0 points to out of clip space.
 - If not using point size, set up clipping renderprocessor with a fragment shader because then I can discard fragments with 0 opacity.
 - Review all of my code TODOs.
-- Remove printing of plane distances once I am confident about their correctness.
 - Don't splat the central view once confident on the correctness.
 - Split planes non-linearly (make non-linear distances).

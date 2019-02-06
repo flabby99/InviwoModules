@@ -316,7 +316,7 @@ void clippingRenderProcessor::process() {
     distances.reserve(numClips_ + 1);
     FindPlaneDistances(distances);
 
-    // Can print the distances if debuggging
+    // Can print the distances if debugging
     #if 0
     LogInfo("Printing distances:");
     for (float distance : distances ) {
