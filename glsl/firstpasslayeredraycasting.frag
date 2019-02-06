@@ -189,7 +189,6 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
 }
 
 void main() {
-    // TODO will be faster if I explicity remove this tex sample for later iters
     vec2 texCoords = gl_FragCoord.xy * entryParameters.reciprocalDimensions;
     vec3 entryPoint = texture(entryColor, texCoords).rgb;
     vec3 exitPoint = texture(exitColor, texCoords).rgb;

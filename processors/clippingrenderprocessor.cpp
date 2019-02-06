@@ -316,11 +316,13 @@ void clippingRenderProcessor::process() {
     distances.reserve(numClips_ + 1);
     FindPlaneDistances(distances);
 
-    // TODO remove temp printing
+    // Can print the distances if debuggging
+    #if 0
     LogInfo("Printing distances:");
     for (float distance : distances ) {
         LogInfo(distance);
     }
+    #endif
 
     auto inMesh = inport_.getData().get();
 

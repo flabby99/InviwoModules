@@ -100,10 +100,8 @@ void multipleplaneProcessor::onViewToggled() {
         height_ = outportYDim_ / 9;
     }
     viewProp_.setVisible(useIndividualView_.get());
-    // Use this to define a fixed size vertex grid
     outport_.setDimensions(size2_t(outportXDim_, outportYDim_));    
 
-    // TODO may need to handle the memory more manually than this
     createVertexGrid(grid_, width_, height_);
     va_ = std::make_unique<VertexArray>();
     vb_ = std::make_shared<VertexBuffer>(
