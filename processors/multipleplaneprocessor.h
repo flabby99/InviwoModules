@@ -33,6 +33,7 @@
 #include <modules/layereddepth/layereddepthmoduledefine.h>
 #include <modules/layereddepth/helpers/vertexarray.h>
 #include <modules/layereddepth/helpers/vertexbuffer.h>
+#include <modules/layereddepth/helpers/texture.h>
 #include <inviwo/core/common/inviwo.h>
 #include <inviwo/core/processors/processor.h>
 #include <inviwo/core/properties/ordinalproperty.h>
@@ -112,6 +113,8 @@ private:
 
     std::unique_ptr<VertexArray> reverseVa_;
     std::shared_ptr<VertexBuffer> reverseVb_;
+
+    std::unique_ptr<scene::Texture> spriteTexture_;
 };
 
 }  // namespace inviwo

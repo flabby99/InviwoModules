@@ -30,13 +30,20 @@
 in vec4 colour;
 in float not_valid;
 
+uniform sampler2D spriteTex;
+
 // TODO check if this ever shows up, don't think the splat will ever go behind the camera.
 void main(void) {
     if (bool(not_valid)) {
-       discard;
+        discard;
         //FragData0 = vec4(1);
     }
     else {
-        FragData0 = colour;
+        vec4 sprite_value = texture(spriteTex, gl_PointCoord);
+        // TODO make a proper texture so that alpha can be used
+        FragData0 = vec4(colour.rgb * sprite_value.rgb, colour.a * sprite_value.r);
+        //FragData0 = colour;
+        //FragData0 = vec4(texture(spriteTex, vec2(0.5, 0.5)).rgb, 1);
+        //FragData0 = vec4(1);
     }
 }

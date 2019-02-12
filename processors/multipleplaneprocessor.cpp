@@ -84,6 +84,12 @@ multipleplaneProcessor::multipleplaneProcessor()
         [this]() {onViewToggled(); });
     onViewToggled();
     outport_.setHandleResizeEvents(false);
+
+    const char* sprite_location = "/home/sean/repos/modules/layereddepth/data/images/telescope.JPG";
+    spriteTexture_ = std::make_unique<scene::Texture>();
+    spriteTexture_->SetSlot(GL_TEXTURE0);
+    spriteTexture_->LoadNoMip(sprite_location);
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void multipleplaneProcessor::onViewToggled() {
@@ -199,6 +205,15 @@ void multipleplaneProcessor::process() {
     );
     int view = viewProp_.get();
 
+    // Could try making texture unit here
+    //TextureUnit unit;
+    spriteTexture_->Bind();
+    GLint loc = glGetUniformLocation(shader_.getID(), "spriteTex");
+    if (loc != -1) {
+        glUniform1i(loc, spriteTexture_->GetID());
+    }
+    glActiveTexture(GL_TEXTURE0);
+    // shader_.setUniform("sprite", spriteTexture_->GetID());
     if(useIndividualView_.get()) {
         if(view < 22) {
             va_->Bind();

@@ -8,6 +8,8 @@ set(HEADER_FILES
     #${CMAKE_CURRENT_SOURCE_DIR}/layereddepthprocessor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexarray.h
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexbuffer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/texture.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/stb_image.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/clippingrenderprocessor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/compositor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/fixedimagesize.h
@@ -24,6 +26,7 @@ set(SOURCE_FILES
     #${CMAKE_CURRENT_SOURCE_DIR}/layereddepthprocessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexarray.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/vertexbuffer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/texture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/clippingrenderprocessor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/compositor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/processors/fixedimagesize.cpp
