@@ -107,9 +107,20 @@ void multipleplaneProcessor::onViewToggled() {
     vb_ = std::make_shared<VertexBuffer>(
         grid_.get(), (unsigned int)sizeof(float) * 2 * width_ * height_
     );
-    LogInfo("Grid last element is " << grid_[2* (width_ * height_ -1)] << " " << grid_[2* (width_ * height_ -1) + 1]);
-    va_->Addbuffer_2f(vb_, 0);
+    reverseVa_ = std::make_unique<VertexArray>();
+    reverseGrid_ = std::make_unique<float[]>(width_ * height_ * 2);
+    for (unsigned int i = 0; i < width_* height_; ++i) {
+        reverseGrid_[2 * i] = grid_[(width_ * height_ * 2) - (2 * i + 2)];
+        reverseGrid_[2 * i + 1] = grid_[(width_ * height_ * 2) - (2 * i + 1)];
 
+    }
+    reverseVb_ = std::make_unique<VertexBuffer>(
+        reverseGrid_.get(), (unsigned int)sizeof(float) * 2 * width_ * height_
+    );
+    LogInfo("Grid last element is " << grid_[2* (width_ * height_ -1)] << " " << grid_[2* (width_ * height_ -1) + 1]);
+    LogInfo("Reverse Grid last element is " << reverseGrid_[2* (width_ * height_ -1)] << " " << reverseGrid_[2* (width_ * height_ -1) + 1]);
+    va_->Addbuffer_2f(vb_, 0);
+    reverseVa_->Addbuffer_2f(reverseVb_, 0);
 }
 
 multipleplaneProcessor::~multipleplaneProcessor() {
@@ -147,11 +158,13 @@ void multipleplaneProcessor::process() {
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Set smoothing points information
     //glEnable(GL_POINT_SMOOTH);
-    glDisable(GL_POINT_SMOOTH);
-    glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+    //glDisable(GL_POINT_SMOOTH);
+    //glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 
     // Allow the size of a point to be specified in the shader
     glEnable(GL_PROGRAM_POINT_SIZE);
+    glEnable(GL_POINT_SPRITE);
+    glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
     glClearColor(0.f, 0.f, 0.f, 0.f);
 
     //glDisable(GL_DEPTH_TEST);
@@ -180,7 +193,6 @@ void multipleplaneProcessor::process() {
     float offsetY = 0;
 
     int num_vertices = width_ * height_;
-    va_->Bind();
     mat4 vpMatrixInverse = (
         camera_.get().getInverseViewMatrix() *
         camera_.get().getInverseProjectionMatrix()
@@ -188,6 +200,12 @@ void multipleplaneProcessor::process() {
     int view = viewProp_.get();
 
     if(useIndividualView_.get()) {
+        if(view < 22) {
+            va_->Bind();
+        }
+        else {
+            reverseVa_->Bind();
+        }
         for (int i = 0; i < numClips_; ++i) {
             TextureUnitContainer units;
             utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
@@ -217,10 +235,16 @@ void multipleplaneProcessor::process() {
             utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
                                        ImageType::ColorDepth);
             view = 0;
+            va_->Bind();
+            bool forwardDir = true;
             for(int y = 0; y < 9; ++y)
             {
                 for(int x = 0; x < 5; ++x)
-                {
+                {   
+                    if(forwardDir && view < 22) {
+                        reverseVa_->Bind();
+                        forwardDir = false;
+                    }
                     float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
                     offsetX = adjustedSize * tanf(glm::radians(angleAtView));
                     offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
@@ -253,7 +277,7 @@ void multipleplaneProcessor::process() {
     shader_.deactivate();
     
     glDisable(GL_BLEND);
-    glEnable(GL_POINT_SMOOTH);
+    //glEnable(GL_POINT_SMOOTH);
 }
 
 }  // namespace inviwo

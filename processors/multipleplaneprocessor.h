@@ -96,6 +96,7 @@ private:
 
     IntProperty numClips_;
     std::unique_ptr<float[]> grid_;
+    std::unique_ptr<float[]> reverseGrid_;
     unsigned int outportXDim_;
     unsigned int outportYDim_;
     unsigned int width_;
@@ -108,6 +109,9 @@ private:
 
     std::unique_ptr<VertexArray> va_;
     std::shared_ptr<VertexBuffer> vb_;
+
+    std::unique_ptr<VertexArray> reverseVa_;
+    std::shared_ptr<VertexBuffer> reverseVb_;
 };
 
 }  // namespace inviwo
