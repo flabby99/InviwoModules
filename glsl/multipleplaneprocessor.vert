@@ -37,7 +37,6 @@ uniform sampler2D spriteTex;
 out vec4 colour;
 out float not_valid;
 
-// TODO if this is slow this way, could do it in a fragment shader instead - can't control point size though
 void main(void) {
     colour = texture(tex0Color, in_position);
     // Don't splat transparent points

@@ -32,7 +32,6 @@ in float not_valid;
 
 uniform sampler2D spriteTex;
 
-// TODO check if this ever shows up, don't think the splat will ever go behind the camera.
 void main(void) {
     if (bool(not_valid)) {
         discard;
