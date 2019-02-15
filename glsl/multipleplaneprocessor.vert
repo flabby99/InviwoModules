@@ -52,13 +52,17 @@ void main(void) {
 
         // depth = 0.99;
         vec4 screen_pos = vec4(2 * in_position - 1, depth, 1);
-        vec4 world_pos = transformMatrix * screen_pos;
-        not_valid = float(world_pos.w < 0);
+        vec4 new_screen_pos = transformMatrix * screen_pos;
+        not_valid = float(new_screen_pos.w < 0);
         
         // TODO calculate this based on distances and normals - or at the very least, based on the view position.
-        gl_PointSize = 1.0;
+        vec3 displacement = vec3(new_screen_pos.xyz / new_screen_pos.w) - screen_pos.xyz;
+        //float point_size = (1 + abs((displacement.x) * 100)) * (1 + abs((displacement.y) * 50));
+        //point_size = 2;
+        // colour = vec4(vec3(point_size / 30), 1);
+        gl_PointSize = 1;
 
         // Division by w is done in hardware
-        gl_Position = world_pos;
+        gl_Position = new_screen_pos;
     }
 }

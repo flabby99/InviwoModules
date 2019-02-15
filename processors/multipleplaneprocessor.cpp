@@ -216,10 +216,10 @@ void multipleplaneProcessor::process() {
     // shader_.setUniform("sprite", spriteTexture_->GetID());
     if(useIndividualView_.get()) {
         if(view < 22) {
-            va_->Bind();
+            reverseVa_->Bind();
         }
         else {
-            reverseVa_->Bind();
+            va_->Bind();
         }
         for (int i = 0; i < numClips_; ++i) {
             TextureUnitContainer units;
@@ -250,16 +250,17 @@ void multipleplaneProcessor::process() {
             utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
                                        ImageType::ColorDepth);
             view = 0;
-            va_->Bind();
+            reverseVa_->Bind();
             bool forwardDir = true;
             for(int y = 0; y < 9; ++y)
             {
                 for(int x = 0; x < 5; ++x)
                 {   
-                    if(forwardDir && view < 22) {
-                        reverseVa_->Bind();
+                    if(forwardDir && view > 22) {
+                        va_->Bind();
                         forwardDir = false;
                     }
+                        
                     float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
                     offsetX = adjustedSize * tanf(glm::radians(angleAtView));
                     offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
