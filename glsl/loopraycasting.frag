@@ -85,6 +85,7 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
     float t = 0.5f * tIncr;
     rayDirection = normalize(rayDirection);
     float tDepth = -1.0;
+    float fDepth = -1.0;
     vec4 color;
     vec4 voxel;
     vec3 samplePos;
@@ -146,11 +147,14 @@ vec4 rayTraversal(vec3 entryPoint, vec3 exitPoint, vec2 texCoords, float backgro
                                        worldSpacePosition, -gradient, toCameraDir);
 
             result = APPLY_COMPOSITING(result, color, samplePos, voxel, gradient, camera,
-                                       raycaster.isoValue, t, tDepth, tIncr);
+                                       raycaster.isoValue, t, fDepth, tIncr);
         }
 #endif // INCLUDE_DVR
 
         // early ray termination
+        if (result.a > 0.7 && tDepth == -1.0) {
+            tDepth = t;
+        }
         if (result.a > ERT_THRESHOLD) {
             t = tEnd;
         } else {
