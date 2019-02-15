@@ -82,6 +82,7 @@ void lfentryexitpoints::onViewToggled() {
     if(useIndividualView_.get()) {
         entryPort_.setDimensions(imageDim_.get());
         exitPort_.setDimensions(imageDim_.get());
+        fullSize_.set(imageDim_.get());
     }
     else {
         //if (imageDim_.get() == imageDim_.getMaxValue())
