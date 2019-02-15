@@ -33,6 +33,8 @@ lfentryexitpoints::lfentryexitpoints()
     , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
     , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
     , useIndividualView_("indvidual_view", "Should show only one view", false)
+    , imageDim_("dimensions", "Invidual view dimensions", ivec2(408, 226), ivec2(0, 0), ivec2(819, 455), ivec2(1, 1))
+    , fullSize_("full_dimensions", "Full dimensions", ivec2(2040, 2034), ivec2(0, 0), ivec2(4096, 4096), ivec2(1, 1))
     , viewProp_("view", "View number", 0, 0, 44, 1)
     , entryExitShader_("lfentryexitpoints.vert", "lfentryexitpoints.frag")
     , nearClipShader_("img_identity.vert", "lfcapnearclipping.frag") 
@@ -44,6 +46,8 @@ lfentryexitpoints::lfentryexitpoints()
     addPort(entryPort_, "ImagePortGroup1");
     addPort(exitPort_, "ImagePortGroup1");
     addProperty(useIndividualView_);
+    addProperty(imageDim_);
+    addProperty(fullSize_);
     addProperty(viewProp_);
     addProperty(regionSizeProperty_);
     addProperty(viewConeProperty_);
@@ -55,17 +59,18 @@ lfentryexitpoints::lfentryexitpoints()
 
     // Change this if default state is to show only one view
     viewProp_.setVisible(false);
-    entryPort_.setDimensions(size2_t(4096, 4096));
-    exitPort_.setDimensions(size2_t(4096, 4096));
 
     entryPort_.setHandleResizeEvents(false);
     exitPort_.setHandleResizeEvents(false);
 
     useIndividualView_.onChange(
         [this]() {onViewToggled(); });
+    imageDim_.onChange(
+        [this]() {onViewToggled(); });
 
     inverseMatrices_ = std::make_unique<std::vector<mat4>>();
     inverseMatrices_->reserve(45);
+    fullSize_.setReadOnly(true);
 }
 
 void lfentryexitpoints::initializeResources() {
@@ -75,12 +80,20 @@ void lfentryexitpoints::initializeResources() {
 
 void lfentryexitpoints::onViewToggled() {
     if(useIndividualView_.get()) {
-        entryPort_.setDimensions(size2_t(819, 455));
-        exitPort_.setDimensions(size2_t(819, 455));
+        entryPort_.setDimensions(imageDim_.get());
+        exitPort_.setDimensions(imageDim_.get());
     }
     else {
-        entryPort_.setDimensions(size2_t(4096, 4096));
-        exitPort_.setDimensions(size2_t(4096, 4096));
+        //if (imageDim_.get() == imageDim_.getMaxValue())
+        //    fullSize_ = ivec2(4096, 4096);
+        //else {
+        int Xdim = imageDim_.get().x * 5;
+        int Ydim = imageDim_.get().y * 9;
+        fullSize_.set(ivec2(Xdim, Ydim));
+        // }
+
+        entryPort_.setDimensions(fullSize_.get());
+        exitPort_.setDimensions(fullSize_.get());
     }
     viewProp_.setVisible(useIndividualView_.get());
 }
@@ -95,7 +108,6 @@ void lfentryexitpoints::process() {
         entryExitShader_.activate();
         mat4 modelMatrix = inport_.getData().get()->getCoordinateTransformer(camera_.get()).getDataToClipMatrix();
         entryExitShader_.setUniform("dataToClip", modelMatrix);
-
         
         {
             // generate exit points
@@ -156,7 +168,7 @@ void lfentryexitpoints::drawViews()
     mat4 worldMatrix = inport_.getData().get()->getCoordinateTransformer(camera_.get()).getDataToWorldMatrix();
 
     int view = viewProp_.get();
-    size2_t tileSize(819, 455);
+    ivec2 tileSize = imageDim_.get();
     float viewCone = viewConeProperty_.get();
     PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
     float size = regionSizeProperty_.get();
@@ -215,13 +227,12 @@ void lfentryexitpoints::drawViews()
             }
         }
         
-        glViewport(0, 0, 4096, 4096);
+        glViewport(0, 0, fullSize_.get().x, fullSize_.get().y);
     }
 }
 
-// TODO can speed this  up by saving the camera matrix from drawviews
 void lfentryexitpoints::drawNearPlanes() {
-    size2_t tileSize(819, 455);
+    ivec2 tileSize = imageDim_.get();
     vec4 viewport;
     
     if(useIndividualView_.get()) {
@@ -239,14 +250,14 @@ void lfentryexitpoints::drawNearPlanes() {
                 nearClipShader_.setUniform("NDCToTextureMat", inverseMatrices_->at(count));
                 size2_t start(x * tileSize.x, y * tileSize.y);
                 glViewport(start.x, start.y, tileSize.x, tileSize.y);
-                viewport = vec4(start.x / 4096.f, start.y / 4096.f, tileSize.x / 4096.f, tileSize.y / 4096.f);
+                viewport = vec4(start.x / (float)fullSize_.get().x, start.y / (float)fullSize_.get().y, tileSize.x / (float)fullSize_.get().x, tileSize.y / (float)fullSize_.get().y);
                 nearClipShader_.setUniform("viewport", viewport);
                 utilgl::singleDrawImagePlaneRect();
                 ++count;
             }
         }
         
-        glViewport(0, 0, 4096, 4096);
+        glViewport(0, 0, fullSize_.get().x, fullSize_.get().y);
     }
 }
 

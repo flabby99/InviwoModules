@@ -40,6 +40,7 @@
 #include <inviwo/core/ports/imageport.h>
 #include <inviwo/core/interaction/cameratrackball.h>
 #include <modules/opengl/shader/shader.h>
+#include <inviwo/core/properties/compositeproperty.h>
 
 namespace inviwo {
 
@@ -93,6 +94,8 @@ private:
     FloatProperty viewConeProperty_;
 
     BoolProperty useIndividualView_;
+    IntVec2Property imageDim_;
+    IntVec2Property fullSize_;
     IntProperty viewProp_;
 
     Shader entryExitShader_;

@@ -5,7 +5,7 @@ uniform sampler2D tileTexture;
 
 vec2 texArr(vec3 uvz) 
 {
-    const vec4 tile = vec4(5, 9, 0.999755859, 0.999755859);
+    const vec4 tile = vec4(5, 9, 1, 1);
     float z = floor(uvz.z * tile.x * tile.y);
     float x = (mod(z, tile.x) + uvz.x) / tile.x;
     float y = (floor(z / tile.x) + uvz.y) / tile.y;
