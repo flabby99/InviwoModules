@@ -163,9 +163,12 @@ void multipleplaneProcessor::process() {
     glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // Set smoothing points information
-    //glEnable(GL_POINT_SMOOTH);
-    //glDisable(GL_POINT_SMOOTH);
-    //glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+    // Two options:
+        // One - Render smoothed points as gaussian blurred pixels with bigger size
+        // Two - Render square pixels with no blur at the exact size
+    // glEnable(GL_POINT_SMOOTH);
+    glDisable(GL_POINT_SMOOTH);
+    glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 
     // Allow the size of a point to be specified in the shader
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -184,6 +187,7 @@ void multipleplaneProcessor::process() {
     // Initialize shaders, textures, targets and uniforms
     shader_.activate();
     utilgl::activateAndClearTarget(outport_);
+    shader_.setUniform("width", (int)width_);
 
     // Do preliminary calculations
     mat4 projectionMatrix = camera_.get().getProjectionMatrix();
@@ -216,10 +220,10 @@ void multipleplaneProcessor::process() {
     // shader_.setUniform("sprite", spriteTexture_->GetID());
     if(useIndividualView_.get()) {
         if(view < 22) {
-            reverseVa_->Bind();
+            va_->Bind();
         }
         else {
-            va_->Bind();
+            reverseVa_->Bind();
         }
         for (int i = 0; i < numClips_; ++i) {
             TextureUnitContainer units;
@@ -250,15 +254,18 @@ void multipleplaneProcessor::process() {
             utilgl::bindAndSetUniforms(shader_, units, *inport_.getData()->at(i), "tex0",
                                        ImageType::ColorDepth);
             view = 0;
-            reverseVa_->Bind();
+            
             bool forwardDir = true;
             for(int y = 0; y < 9; ++y)
             {
                 for(int x = 0; x < 5; ++x)
                 {   
-                    if(forwardDir && view > 22) {
-                        va_->Bind();
+                    if(view > 22) {
+                        reverseVa_->Bind();
                         forwardDir = false;
+                    }
+                    else {
+                        va_->Bind();    
                     }
                         
                     float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
