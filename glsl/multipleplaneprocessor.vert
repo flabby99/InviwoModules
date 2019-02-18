@@ -29,6 +29,7 @@
 #include "utils/sampler2d.glsl"
 layout (location = 0) in vec2 in_position;
 uniform mat4 transformMatrix = mat4(1);
+uniform int width = 819;
 
 uniform sampler2D tex0Color;
 uniform sampler2D tex0Depth;
@@ -40,9 +41,9 @@ out float not_valid;
 void main(void) {
     colour = texture(tex0Color, in_position);
     // Don't splat transparent points
-    if (colour.a == 0) {
-        not_valid = 1;
-        gl_Position = vec4(0, 0, -1, 1);
+    if (colour.a < 0.05) {
+       not_valid = 1;
+       gl_Position = vec4(0, 0, -1, 1);
     }
     else {
         // Multiply the transform Matrix by the incoming vertex and go from there.
@@ -56,11 +57,23 @@ void main(void) {
         not_valid = float(new_screen_pos.w < 0);
         
         // TODO calculate this based on distances and normals - or at the very least, based on the view position.
-        vec3 displacement = vec3(new_screen_pos.xyz / new_screen_pos.w) - screen_pos.xyz;
+        //vec3 displacement = vec3(new_screen_pos.xyz / new_screen_pos.w) - screen_pos.xyz;
         //float point_size = (1 + abs((displacement.x) * 100)) * (1 + abs((displacement.y) * 50));
         //point_size = 2;
-        // colour = vec4(vec3(point_size / 30), 1);
-        gl_PointSize = 1;
+        vec4 square_left = vec4(screen_pos.x - (1 / float(width)), screen_pos.yzw);
+        vec4 square_right = vec4(screen_pos.x + (1 / float(width)), screen_pos.yzw);
+        vec4 screen_vec = square_right - square_left;
+        //vec4 new_screen_vec = transformMatrix * screen_vec;
+        vec4 new_screen_vec = (transformMatrix * square_right) - (transformMatrix * square_left);
+        float point_size = (width) * length(new_screen_vec.xyz);
+        point_size = clamp(point_size, 1, 10);
+        //colour = vec4(vec3(length(new_screen_vec.x) * (width / 2)), 1);
+        //colour = vec4(vec3(length(screen_vec) * width / 3), 1);
+        //colour = vec4(vec3(new_screen_vec.x) * width / 4, 1);
+        //colour = vec4(vec3(abs(length(new_screen_vec) * (width / 2) - 1) * 100), 1);
+        //colour = vec4(vec3(abs(length(new_screen_vec) - length(screen_vec)) * 1000), 1);
+
+        gl_PointSize = 2;
 
         // Division by w is done in hardware
         gl_Position = new_screen_pos;
