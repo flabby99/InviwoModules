@@ -22,8 +22,8 @@ const ProcessorInfo lfswizzleprocessor::getProcessorInfo() const { return proces
 
 lfswizzleprocessor::lfswizzleprocessor()
     : Processor()
-    , tileImagePort_("tiledata", DataVec4UInt16::get())
-    , outputPort_("output", DataVec4UInt16::get())
+    , tileImagePort_("tiledata", DataVec4UInt8::get())
+    , outputPort_("output", DataVec4UInt8::get())
     , swizzleShader_("lfswizzle.vert", "lfswizzle.frag") 
 {
     addPort(tileImagePort_);
