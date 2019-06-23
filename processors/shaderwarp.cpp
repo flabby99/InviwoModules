@@ -83,24 +83,6 @@ void ShaderWarp::initializeResources() {
     shader_.build();
 }
 
-float ShaderWarp::getSensorSizeY() {
-    float focal_length = camera_.projectionMatrix()[0][0];
-    float fov_degrees = ((PerspectiveCamera*) (&camera_.get()))->getFovy();
-    float fov_radians = fov_degrees * PI_VALUE / 180.0f;
-    float sensor_size = 2.0f * focal_length * tan(fov_radians / 2.0f);
-    return sensor_size;
-}
-
-float ShaderWarp::getSensorSizeX() {
-    float focal_length = camera_.projectionMatrix()[0][0];
-    float fov_degrees = ((PerspectiveCamera*) (&camera_.get()))->getFovy();
-    float aspect_ratio = ((PerspectiveCamera*) (&camera_.get()))->getAspectRatio();
-    float fov_radians = fov_degrees * PI_VALUE / 180.0f;
-    fov_radians = 2 * atan((fov_radians / 2.0f) * aspect_ratio);
-    float sensor_size = 2.0f * focal_length * tan(fov_radians);
-    return sensor_size;
-}
-
 void ShaderWarp::process() {
     if (entryPort_.isReady()){    
         // Do the backward warping
@@ -122,23 +104,38 @@ void ShaderWarp::process() {
     }
 }
 
-void ShaderWarp::drawLGViews() {
-    float sensor_size_x = getSensorSizeX();
-    float sensor_size_y = getSensorSizeY();
+float ShaderWarp::getSensorSizeY() {
+    float focal_length = camera_.projectionMatrix()[0][0];
+    float fov_degrees = ((PerspectiveCamera*) (&camera_.get()))->getFovy();
+    float fov_radians = fov_degrees * PI_VALUE / 180.0f;
+    float sensor_size = 2.0f * focal_length * tan(fov_radians / 2.0f);
+    return sensor_size;
+}
 
+float ShaderWarp::getSensorSizeX() {
+    float focal_length = camera_.projectionMatrix()[0][0];
+    float fov_degrees = ((PerspectiveCamera*) (&camera_.get()))->getFovy();
+    float aspect_ratio = ((PerspectiveCamera*) (&camera_.get()))->getAspectRatio();
+    float fov_radians = fov_degrees * PI_VALUE / 180.0f;
+    fov_radians = 2 * atan((fov_radians / 2.0f) * aspect_ratio);
+    float sensor_size = 2.0f * focal_length * tan(fov_radians);
+    return sensor_size;
+}
+
+void ShaderWarp::drawLGViews() {
     // Draw the views
     int view = 0;
+    float sensorSize = getSensorSizeY();
+    LogInfo("Sensor size is " << sensorSize);
+    float sensorScale = 512 / sensorSize;
     size2_t tileSize = disparity_size_;
-    PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
-    float offsetX = 0;
-    float offsetY = 0;
     for(int y = 0; y < 8; ++y)
     {
         for(int x = 0; x < 8; ++x)
         {
         
-        disparityScale_x_ = shift_ * (4 - x);
-        disparityScale_y_ = shift_ * (4, y);
+        disparityScale_x_ = sensorScale * (4 - x);
+        disparityScale_y_ = sensorScale * (4 - y);
         
         utilgl::setUniforms(shader_, disparityScale_x_, disparityScale_y_, shift_);
 

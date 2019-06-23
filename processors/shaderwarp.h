@@ -99,8 +99,6 @@ protected:
     FloatProperty disparityScale_y_;
     FloatProperty shift_;
 
-    IntProperty grid_x_;
-    IntProperty grid_y_;
     CameraProperty camera_;
 
     Shader shader_;
