@@ -53,8 +53,8 @@ ShaderWarp::ShaderWarp()
     : Processor()
     , entryPort_("disparity")
     , outport_("outport")
-    , disparityScale_x_("disparityScale_x", "Disparity Scale x", 0.0, -10, 10, 0.01)
-    , disparityScale_y_("disparityScale_y", "Disparity Scale y", 0.0, -10, 10, 0.01)
+    , disparityScale_x_("disparityScale_x", "Disparity Scale x", 0.0, -512, 512, 0.001)
+    , disparityScale_y_("disparityScale_y", "Disparity Scale y", 0.0, -512, 512, 0.001)
     , shift_("shift", "Shift between cameras", 0.0f, -100.0f, 100.0f, 0.01f)
     , camera_("camera", "Camera")
     , shader_("backwardwarping.frag") {
@@ -126,8 +126,8 @@ void ShaderWarp::drawLGViews() {
     // Draw the views
     int view = 0;
     float sensorSize = getSensorSizeY();
-    LogInfo("Sensor size is " << sensorSize);
-    float sensorScale = 512 / sensorSize;
+    // Not multiplying by 512 since working in 0 1 range
+    float sensorScale = 1 / sensorSize;
     size2_t tileSize = disparity_size_;
     for(int y = 0; y < 8; ++y)
     {
