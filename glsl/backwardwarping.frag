@@ -17,8 +17,8 @@ uniform vec4 viewport;
 void main() {
     vec2 texCoords = (gl_FragCoord.xy - viewport.xy) / (viewport.zw);
     float disparity = texture(disparityDepth, texCoords).x;
-    float disparity_x = disparity * (disparityScale_x) - (shift / 1.4);
-    float disparity_y = disparity * disparityScale_y - disparityScale_y;
+    float disparity_x = disparity * disparityScale_x;
+    float disparity_y = disparity * disparityScale_y;
 
     //vec2 dimensions = disparityParameters.dimensions;
     float coord_x = clamp(texCoords.x + disparity_x, 0, 1);

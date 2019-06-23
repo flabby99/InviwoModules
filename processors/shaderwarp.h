@@ -97,11 +97,10 @@ protected:
 
     FloatProperty disparityScale_x_;        
     FloatProperty disparityScale_y_;
-    FloatProperty regionSizeProperty_;
-    FloatProperty verticalAngleProperty_;
-    FloatProperty viewConeProperty_;
     FloatProperty shift_;
 
+    IntProperty grid_x_;
+    IntProperty grid_y_;
     CameraProperty camera_;
 
     Shader shader_;

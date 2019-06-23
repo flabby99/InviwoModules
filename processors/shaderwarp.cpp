@@ -55,9 +55,6 @@ ShaderWarp::ShaderWarp()
     , outport_("outport")
     , disparityScale_x_("disparityScale_x", "Disparity Scale x", 0.0, -10, 10, 0.01)
     , disparityScale_y_("disparityScale_y", "Disparity Scale y", 0.0, -10, 10, 0.01)
-    , regionSizeProperty_("size", "Size", 5.0f, 0.0f, 10.0f)
-    , verticalAngleProperty_("vertical_angle", "Vertical Angle", 0.0f, -60.0f, 60.0f, 0.1f)
-    , viewConeProperty_("view_cone", "View cone", 40.0f, 0.0f, 90.0f, 0.1f)
     , shift_("shift", "Shift between cameras", 0.0f, -100.0f, 100.0f, 0.01f)
     , camera_("camera", "Camera")
     , shader_("backwardwarping.frag") {
@@ -69,15 +66,11 @@ ShaderWarp::ShaderWarp()
     addProperty(camera_);
     addProperty(disparityScale_x_);
     addProperty(disparityScale_y_);
-    addProperty(regionSizeProperty_);
-    addProperty(viewConeProperty_);
-    addProperty(verticalAngleProperty_);
     addProperty(shift_);
     disparityScale_x_.setReadOnly(true);
     disparityScale_y_.setReadOnly(true);
-    shift_.setReadOnly(true);
 
-    disparity_size_ = size2_t(819, 455);
+    disparity_size_ = size2_t(512, 512);
 
     outport_.setDimensions(size2_t(4096, 4096));
     outport_.setHandleResizeEvents(false);
@@ -136,24 +129,16 @@ void ShaderWarp::drawLGViews() {
     // Draw the views
     int view = 0;
     size2_t tileSize = disparity_size_;
-    float viewCone = viewConeProperty_.get();
     PerspectiveCamera* cam = (PerspectiveCamera*)&camera_.get();
-    float size = regionSizeProperty_.get();
-    float verticalAngle = verticalAngleProperty_.get();
-    float adjustedSize = size / tanf(glm::radians(cam->getFovy() * 0.5f));
     float offsetX = 0;
     float offsetY = 0;
-    for(int y = 0; y < 9; ++y)
+    for(int y = 0; y < 8; ++y)
     {
-        for(int x = 0; x < 5; ++x)
-        { 
-        float angleAtView = -viewCone * 0.5f + (float)view / (45.0f - 1.0f) * viewCone;
-        offsetX = adjustedSize * tanf(glm::radians(angleAtView));
-        offsetY = adjustedSize * tanf(glm::radians(verticalAngle));
-
-        disparityScale_x_ = (offsetX / size * cam->getAspectRatio());
-        disparityScale_y_ = (offsetY / size);
-        shift_ = offsetX / (size * cam->getAspectRatio());
+        for(int x = 0; x < 8; ++x)
+        {
+        
+        disparityScale_x_ = shift_ * (4 - x);
+        disparityScale_y_ = shift_ * (4, y);
         
         utilgl::setUniforms(shader_, disparityScale_x_, disparityScale_y_, shift_);
 
