@@ -129,13 +129,13 @@ void ShaderWarp::drawLGViews() {
     // Not multiplying by 512 since working in 0 1 range
     float sensorScale = 1 / sensorSize;
     size2_t tileSize = disparity_size_;
-    for(int y = 0; y < 8; ++y)
+    for(int y = 7; y > -1; --y)
     {
         for(int x = 0; x < 8; ++x)
         {
         
         disparityScale_x_ = sensorScale * (4 - x);
-        disparityScale_y_ = sensorScale * (4 - y);
+        disparityScale_y_ = sensorScale * (3 - y);
         
         utilgl::setUniforms(shader_, disparityScale_x_, disparityScale_y_, shift_);
 
