@@ -17,7 +17,7 @@ float depth_to_disparity(float depth, CameraParameters camera, float baseline) {
     float far = camera.farPlane;
     float focal_length = camera.viewToClip[0][0];
 
-    float disparity = 2.0f * depth - 1.0f;
+    float disparity = 2.0f * (depth - 1.0f);
     disparity = 2.0f * near * far / (near + far - disparity * (far - near));
     disparity = (baseline * focal_length) / disparity;
     return disparity;

@@ -65,7 +65,7 @@ DepthToDisparity::DepthToDisparity()
     addProperty(cameraBaseline_);
     addProperty(camera_);
 
-    disparity_size_ = size2_t(512, 512);
+    disparity_size_ = size2_t(819, 455);
 
     disparity_.setDimensions(disparity_size_);
     disparity_.setHandleResizeEvents(false);

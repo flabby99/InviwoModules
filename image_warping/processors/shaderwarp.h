@@ -97,6 +97,9 @@ protected:
 
     FloatProperty disparityScale_x_;        
     FloatProperty disparityScale_y_;
+    FloatProperty regionSizeProperty_;
+    FloatProperty verticalAngleProperty_;
+    FloatProperty viewConeProperty_;
     FloatProperty shift_;
 
     CameraProperty camera_;
