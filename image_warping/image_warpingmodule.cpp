@@ -31,6 +31,7 @@
 #include <modules/opengl/shader/shadermanager.h>
 #include <modules/image_warping/processors/shaderwarp.h>
 #include <modules/image_warping/processors/depth_to_disparity.h>
+#include <modules/image_warping/processors/lfentryexitpoints.h>
 
 namespace inviwo {
 
@@ -43,6 +44,7 @@ image_warpingModule::image_warpingModule(InviwoApplication* app) : InviwoModule(
     // Processors
     registerProcessor<ShaderWarp>();
     registerProcessor<DepthToDisparity>();
+    registerProcessor<LFPoints>();
 
     // Properties
     // registerProperty<image_warpingProperty>();
