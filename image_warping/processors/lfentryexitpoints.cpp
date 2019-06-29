@@ -1,4 +1,4 @@
-#include <modules/image_warping/processors/lfentryexitpoints.cpp>
+#include <modules/image_warping/processors/lfentryexitpoints.h>
 
 #include <inviwo/core/datastructures/camera.h>
 #include <inviwo/core/datastructures/coordinatetransformer.h>
@@ -47,7 +47,7 @@ LFPoints::LFPoints()
     addProperty(imageDim_);
     addProperty(fullSize_);
     addProperty(viewProp_);
-    addProperty(centre_idx_)
+    addProperty(centre_idx_);
     addProperty(baseline_);
     addProperty(capNearClipping_);
     addProperty(camera_);
@@ -168,7 +168,7 @@ void LFPoints::drawViews()
     ivec2 tileSize = imageDim_.get();
     
     if(useIndividualView_.get()) {
-        ivec2 move_dist = view - centre_idx_.get()
+        ivec2 move_dist = view - centre_idx_.get();
 
         mat4 currentViewMatrix = viewMatrix;
         currentViewMatrix[3][0] -= move_dist.x;
@@ -181,12 +181,13 @@ void LFPoints::drawViews()
         drawer.draw();
     }
     else {
-        view = 0;
+
         for(int y = 0; y < 8; ++y)
         {
             for(int x = 0; x < 8; ++x)
             {
-                ivec2 move_dist = view - centre_idx_.get()
+                view = ivec2(x, y);
+                ivec2 move_dist = view - centre_idx_.get();
 
                 mat4 currentViewMatrix = viewMatrix;
                 currentViewMatrix[3][0] -= move_dist.x;
