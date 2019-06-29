@@ -74,8 +74,9 @@ ShaderWarp::ShaderWarp()
     disparityScale_x_.setReadOnly(true);
     disparityScale_y_.setReadOnly(true);
 
-    ivec2 outsize = fullSize_.get() * 8;
-    outport_.setDimensions(outsize);
+    toggleView();
+    fullSize_.onChange(
+        [this]() {toggleView();});
     outport_.setHandleResizeEvents(false);
     (&entryPort_)->setOutportDeterminesSize(true);
 }
@@ -84,6 +85,11 @@ void ShaderWarp::initializeResources() {
     // Add any defines here.
 
     shader_.build();
+}
+
+void ShaderWarp::toggleView() {
+    ivec2 outsize = fullSize_.get() * 8;
+    outport_.setDimensions(outsize);
 }
 
 void ShaderWarp::process() {

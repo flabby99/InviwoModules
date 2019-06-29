@@ -89,6 +89,7 @@ public:
 
 protected:
     virtual void process() override;
+    void toggleView();
 
     ImageInport entryPort_;
     ImageOutport outport_;
