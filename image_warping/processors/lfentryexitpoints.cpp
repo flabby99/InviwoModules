@@ -168,7 +168,8 @@ void LFPoints::drawViews()
     ivec2 tileSize = imageDim_.get();
     
     if(useIndividualView_.get()) {
-        ivec2 move_dist = view - centre_idx_.get();
+        ivec2 move_idx = view - centre_idx_.get();
+        vec2 move_dist = ((vec2)move_idx) * baseline_.get();
 
         mat4 currentViewMatrix = viewMatrix;
         currentViewMatrix[3][0] -= move_dist.x;
@@ -187,7 +188,8 @@ void LFPoints::drawViews()
             for(int x = 0; x < 8; ++x)
             {
                 view = ivec2(x, y);
-                ivec2 move_dist = view - centre_idx_.get();
+                ivec2 move_idx = view - centre_idx_.get();
+                vec2 move_dist = ((vec2)move_idx) * baseline_.get();
 
                 mat4 currentViewMatrix = viewMatrix;
                 currentViewMatrix[3][0] -= move_dist.x;

@@ -102,8 +102,9 @@ protected:
     CameraProperty camera_;
 
     Shader shader_;
-private:
-    size2_t disparity_size_;
+    IntVec2Property fullSize_;
+    IntVec2Property centreIdx_;
+    
 };
 
 }  // namespace inviwo

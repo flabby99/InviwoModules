@@ -57,7 +57,9 @@ ShaderWarp::ShaderWarp()
     , disparityScale_y_("disparityScale_y", "Disparity Scale y", 0.0, -512, 512, 0.001)
     , shift_("shift", "Shift between cameras", 0.0f, -100.0f, 100.0f, 0.01f)
     , camera_("camera", "Camera")
-    , shader_("backwardwarping.frag") {
+    , shader_("backwardwarping.frag")
+    , fullSize_("fullsize", "Full size", ivec2(256, 256), ivec2(128, 128), ivec2(512, 512), ivec2(1, 1))
+    , centreIdx_("centreidx", "Centre Index", ivec2(4, 3), ivec2(0, 0), ivec2(7, 7)) {
     shader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
     addPort(entryPort_, "ImagePortGroup1");
@@ -67,12 +69,13 @@ ShaderWarp::ShaderWarp()
     addProperty(disparityScale_x_);
     addProperty(disparityScale_y_);
     addProperty(shift_);
+    addProperty(fullSize_);
+    addProperty(centreIdx_);
     disparityScale_x_.setReadOnly(true);
     disparityScale_y_.setReadOnly(true);
 
-    disparity_size_ = size2_t(512, 512);
-
-    outport_.setDimensions(size2_t(4096, 4096));
+    ivec2 outsize = fullSize_.get() * 8;
+    outport_.setDimensions(outsize);
     outport_.setHandleResizeEvents(false);
     (&entryPort_)->setOutportDeterminesSize(true);
 }
@@ -86,7 +89,7 @@ void ShaderWarp::initializeResources() {
 void ShaderWarp::process() {
     if (entryPort_.isReady()){    
         // Do the backward warping
-        auto start = std::chrono::system_clock::now(); 
+        // auto start = std::chrono::system_clock::now(); 
         TextureUnitContainer units;
         utilgl::activateAndClearTarget(outport_);
         shader_.activate();
@@ -97,8 +100,8 @@ void ShaderWarp::process() {
 
         drawLGViews();
 
-        std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
-        LogInfo("Warping took " << diff.count() << "s");
+        // std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
+        // LogInfo("Warping took " << diff.count() << "s");
         shader_.deactivate();
         utilgl::deactivateCurrentTarget();
     }
@@ -128,14 +131,14 @@ void ShaderWarp::drawLGViews() {
     float sensorSize = getSensorSizeY();
     // Not multiplying by 512 since working in 0 1 range
     float sensorScale = 1 / sensorSize;
-    size2_t tileSize = disparity_size_;
-    for(int y = 7; y > -1; --y)
+    size2_t tileSize = (size2_t)fullSize_.get();
+    for(int y = 0; y < 8; ++y)
     {
         for(int x = 0; x < 8; ++x)
         {
         
-        disparityScale_x_ = sensorScale * (4 - x);
-        disparityScale_y_ = sensorScale * (3 - y);
+        disparityScale_x_ = sensorScale * (centreIdx_.get().x - x);
+        disparityScale_y_ = sensorScale * (centreIdx_.get().y - y);
         
         utilgl::setUniforms(shader_, disparityScale_x_, disparityScale_y_, shift_);
 
@@ -149,7 +152,7 @@ void ShaderWarp::drawLGViews() {
         ++view;
         }
     }
-    glViewport(0, 0, 4096, 4096);
+    glViewport(0, 0, fullSize_.get().x * 8, fullSize_.get().y * 8);
 }
 
 void ShaderWarp::deserialize(Deserializer& d) {

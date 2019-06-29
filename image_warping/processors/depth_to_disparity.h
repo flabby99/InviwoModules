@@ -88,6 +88,7 @@ public:
 
 protected:
     virtual void process() override;
+    void onViewToggled();
 
     ImageInport entryPort_;
     ImageOutport disparity_;
@@ -96,9 +97,7 @@ protected:
     CameraProperty camera_;
 
     Shader depthShader_;
-
-private:
-    size2_t disparity_size_;
+    IntVec2Property fullSize_;
 };
 
 }  // namespace inviwo

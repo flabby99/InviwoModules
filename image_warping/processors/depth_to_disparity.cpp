@@ -55,7 +55,8 @@ DepthToDisparity::DepthToDisparity()
     , disparity_("disparity")
     , cameraBaseline_("cameraBaseline", "Camera Baseline", 0.05, 0, 1, 0.001)
     , camera_("camera", "Camera")
-    , depthShader_("depth_to_disparity.frag") {
+    , depthShader_("depth_to_disparity.frag")
+    , fullSize_("fullsize", "Full size", ivec2(256, 256), ivec2(128, 128), ivec2(512, 512), ivec2(1, 1)){
 
     depthShader_.onReload([this]() { invalidate(InvalidationLevel::InvalidResources); });
 
@@ -64,10 +65,11 @@ DepthToDisparity::DepthToDisparity()
 
     addProperty(cameraBaseline_);
     addProperty(camera_);
+    addProperty(fullSize_);
 
-    disparity_size_ = size2_t(512, 512);
-
-    disparity_.setDimensions(disparity_size_);
+    onViewToggled();
+    fullSize_.onChange(
+        [this]() {onViewToggled();});
     disparity_.setHandleResizeEvents(false);
     (&entryPort_)->setOutportDeterminesSize(true);
 }
@@ -78,9 +80,13 @@ void DepthToDisparity::initializeResources() {
     depthShader_.build();
 }
 
+void DepthToDisparity::onViewToggled() {
+    disparity_.setDimensions(fullSize_.get());
+}
+
 void DepthToDisparity::process() {
     if (entryPort_.isReady()){
-        auto start = std::chrono::system_clock::now();    
+        // auto start = std::chrono::system_clock::now();    
         // Use shader to convert depth to disparity
         utilgl::activateAndClearTarget(disparity_);
         depthShader_.activate();
@@ -93,8 +99,8 @@ void DepthToDisparity::process() {
         
         utilgl::singleDrawImagePlaneRect();
 
-        std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
-        LogInfo("Disparity conversion took " << diff.count() << "s");
+        // std::chrono::duration<double> diff = std::chrono::system_clock::now() - start;
+        // LogInfo("Disparity conversion took " << diff.count() << "s");
         depthShader_.deactivate();
         utilgl::deactivateCurrentTarget();
     }
